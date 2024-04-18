@@ -1,8 +1,8 @@
 package models
 
 import (
+	pb "github.com/Verce11o/resume-view/protos/gen/go"
 	"github.com/google/uuid"
-	pb "github.com/students-apply/protos/gen/go/view"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )

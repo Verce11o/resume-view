@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/Verce11o/resume-view/internal/models"
 	"github.com/Verce11o/resume-view/lib/grpc_errors"
-	pb "github.com/students-apply/protos/gen/go/view"
+	pb "github.com/Verce11o/resume-view/protos/gen/go"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
