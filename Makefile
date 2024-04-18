@@ -1,11 +1,6 @@
-DB_USER=postgres
-DB_PASSWORD=vercello
-DB_NAME=views
-DB_HOST=localhost
-DB_PORT=5432
+include .env
 
-
-.PHONY: all test build
+.PHONY: all test build help
 
 test:
 	go test ./...
@@ -21,3 +16,6 @@ migrate-up:
 
 migrate-down:
 	goose -dir ./migrations postgres "host=${DB_HOST} user=${DB_USER} password=${DB_PASSWORD} port=${DB_PORT} dbname=${DB_NAME} sslmode=disable" down
+
+gen-proto:
+	protoc -I protos protos/*.proto --go_out=protos/gen/go --go_opt=paths=source_relative --go-grpc_out=protos/gen/go/ --go-grpc_opt=paths=source_relative
