@@ -15,7 +15,6 @@ type Config struct {
 	Server Server `yaml:"server"`
 	DB     DB     `yaml:"db"`
 	Jaeger Jaeger `yaml:"jaeger"`
-	Nats   Nats   `yaml:"nats"`
 }
 
 type Server struct {
@@ -33,10 +32,6 @@ type DB struct {
 
 type Jaeger struct {
 	Endpoint string `yaml:"endpoint"`
-}
-
-type Nats struct {
-	Url string `yaml:"url" env:"NATS_URL"`
 }
 
 func Load() *Config {
