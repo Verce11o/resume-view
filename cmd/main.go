@@ -18,10 +18,17 @@ func main() {
 
 	log := logger.NewLogger(cfg)
 
-	application := app.New(ctx, cfg, log)
+	application, err := app.New(ctx, cfg, log)
+
+	if err != nil {
+		log.Errorf("Failed to initialize application: %v", err)
+		return
+	}
 
 	go func() {
-		application.Run()
+		if err := application.Run(); err != nil {
+			log.Errorf("Failed to start application: %v", err)
+		}
 	}()
 
 	log.Infof("server starting on port %s...", cfg.Server.Port)

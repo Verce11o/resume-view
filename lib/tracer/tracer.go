@@ -8,7 +8,6 @@ import (
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
-	"log"
 )
 
 type JaegerTracing struct {
@@ -39,28 +38,24 @@ func NewTraceProvider(exp tracesdk.SpanExporter, ServiceName string) (*tracesdk.
 	), nil
 }
 
-func InitTracer(ctx context.Context, serviceName, endpoint string) *JaegerTracing {
+func InitTracer(ctx context.Context, serviceName, endpoint string) (*JaegerTracing, error) {
 	exporter, err := NewJaegerExporter(ctx, endpoint)
 	if err != nil {
-		log.Fatalf("initialize tracer exporter: %v", err)
+		return nil, err
 	}
 
 	tp, err := NewTraceProvider(exporter, serviceName)
 	if err != nil {
-		log.Fatalf("initialize tracer provider: %v", err)
+		return nil, err
 	}
 
 	otel.SetTracerProvider(tp)
 
-	tracer, err := tp.Tracer("main tracer"), nil
-
-	if err != nil {
-		log.Fatalf("error while init tracer: %v", err)
-	}
+	tracer := tp.Tracer("main tracer")
 
 	return &JaegerTracing{
 		Exporter: exporter,
 		Provider: tp,
 		Tracer:   tracer,
-	}
+	}, nil
 }

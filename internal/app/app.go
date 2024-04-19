@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"log"
 	"net"
 )
 
@@ -23,9 +22,16 @@ type App struct {
 	grpcServer *grpc.Server
 }
 
-func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) *App {
-	trace := tracer.InitTracer(ctx, "view service", cfg.Jaeger.Endpoint)
-	db := postgresLib.Run(ctx, cfg)
+func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App, error) {
+	trace, err := tracer.InitTracer(ctx, "view service", cfg.Jaeger.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := postgresLib.Run(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	repo := repositories.NewViewRepository(db, trace)
 	service := services.NewViewService(log, trace, repo)
@@ -44,19 +50,21 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) *App {
 		cfg:        cfg,
 		log:        log,
 		grpcServer: server,
-	}
+	}, nil
 }
 
-func (a *App) Run() {
+func (a *App) Run() error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", a.cfg.Server.Port))
 
 	if err != nil {
-		log.Fatalf("error while listen grpc server: %v", err)
+		return err
 	}
 
 	if err := a.grpcServer.Serve(l); err != nil {
-		log.Fatalf("error while serve grpc server: %v", err)
+		return err
 	}
+
+	return nil
 }
 
 func (a *App) Stop() {

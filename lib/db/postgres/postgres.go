@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"github.com/Verce11o/resume-view/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
 )
 
-func Run(ctx context.Context, cfg *config.Config) *pgxpool.Pool {
+func Run(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
 	db, err := pgxpool.New(ctx, fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.DB.User, cfg.DB.Password, cfg.DB.Host, cfg.DB.Port, cfg.DB.Name, cfg.DB.SSLMode))
 
 	if err != nil {
-		log.Fatal("Error connecting to database: ", err)
+		return nil, err
 	}
 
 	if err = db.Ping(ctx); err != nil {
-		log.Fatal("Error connecting to database: ", err)
+		return nil, err
 	}
 
-	return db
+	return db, nil
 }
