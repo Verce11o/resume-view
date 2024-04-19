@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/Verce11o/resume-view/internal/config"
 	viewgrpc "github.com/Verce11o/resume-view/internal/grpc"
-	"github.com/Verce11o/resume-view/internal/repository"
-	"github.com/Verce11o/resume-view/internal/service"
+	"github.com/Verce11o/resume-view/internal/repositories"
+	"github.com/Verce11o/resume-view/internal/services"
 	postgresLib "github.com/Verce11o/resume-view/lib/db/postgres"
 	"github.com/Verce11o/resume-view/lib/tracer"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -24,11 +24,11 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) *App {
-	trace := tracer.InitTracer("view service", cfg.Jaeger.Endpoint)
+	trace := tracer.InitTracer(ctx, "view service", cfg.Jaeger.Endpoint)
 	db := postgresLib.Run(ctx, cfg)
 
-	repo := repository.NewViewRepository(db, trace)
-	services := service.NewViewService(log, trace, repo)
+	repo := repositories.NewViewRepository(db, trace)
+	service := services.NewViewService(log, trace, repo)
 
 	server := grpc.NewServer(
 		grpc.StatsHandler(
@@ -38,7 +38,7 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) *App {
 			),
 		))
 
-	viewgrpc.Register(log, services, server, trace.Tracer)
+	viewgrpc.Register(log, service, server, trace.Tracer)
 
 	return &App{
 		cfg:        cfg,

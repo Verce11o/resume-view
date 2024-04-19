@@ -39,8 +39,8 @@ func NewTraceProvider(exp tracesdk.SpanExporter, ServiceName string) (*tracesdk.
 	), nil
 }
 
-func InitTracer(serviceName, endpoint string) *JaegerTracing {
-	exporter, err := NewJaegerExporter(context.Background(), endpoint)
+func InitTracer(ctx context.Context, serviceName, endpoint string) *JaegerTracing {
+	exporter, err := NewJaegerExporter(ctx, endpoint)
 	if err != nil {
 		log.Fatalf("initialize tracer exporter: %v", err)
 	}

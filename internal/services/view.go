@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"context"
@@ -37,8 +37,8 @@ func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string
 	return viewID, nil
 }
 
-func (v *ViewService) GetResumeViews(ctx context.Context, cursor, resumeID string) (models.ViewList, error) {
-	ctx, span := v.tracer.Start(ctx, "viewService.GetResumeViews")
+func (v *ViewService) ListResumeView(ctx context.Context, cursor, resumeID string) (models.ViewList, error) {
+	ctx, span := v.tracer.Start(ctx, "viewService.ListResumeView")
 	defer span.End()
 
 	viewList, err := v.repo.GetViews(ctx, cursor, resumeID)

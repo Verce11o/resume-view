@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	ViewService_CreateView_FullMethodName     = "/view.ViewService/CreateView"
-	ViewService_GetResumeViews_FullMethodName = "/view.ViewService/GetResumeViews"
+	ViewService_GetResumeViews_FullMethodName = "/view.ViewService/ListResumeView"
 )
 
 // ViewServiceClient is the client API for ViewService service.
@@ -74,7 +74,7 @@ func (UnimplementedViewServiceServer) CreateView(context.Context, *CreateViewReq
 	return nil, status.Errorf(codes.Unimplemented, "method CreateView not implemented")
 }
 func (UnimplementedViewServiceServer) GetResumeViews(context.Context, *GetResumeViewsRequest) (*GetResumeViewsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetResumeViews not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method ListResumeView not implemented")
 }
 func (UnimplementedViewServiceServer) mustEmbedUnimplementedViewServiceServer() {}
 
@@ -137,7 +137,7 @@ var ViewService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ViewService_CreateView_Handler,
 		},
 		{
-			MethodName: "GetResumeViews",
+			MethodName: "ListResumeView",
 			Handler:    _ViewService_GetResumeViews_Handler,
 		},
 	},

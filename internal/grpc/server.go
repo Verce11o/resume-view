@@ -14,7 +14,7 @@ import (
 
 type ViewService interface {
 	CreateView(ctx context.Context, resumeID, companyID string) (string, error)
-	GetResumeViews(ctx context.Context, cursor, resumeID string) (models.ViewList, error)
+	ListResumeView(ctx context.Context, cursor, resumeID string) (models.ViewList, error)
 }
 
 type Server struct {
@@ -44,14 +44,14 @@ func (s *Server) CreateView(ctx context.Context, request *pb.CreateViewRequest) 
 }
 
 func (s *Server) GetResumeViews(ctx context.Context, request *pb.GetResumeViewsRequest) (*pb.GetResumeViewsResponse, error) {
-	ctx, span := s.tracer.Start(ctx, "viewHandler.GetResumeViews")
+	ctx, span := s.tracer.Start(ctx, "viewHandler.ListResumeView")
 	defer span.End()
 
-	viewList, err := s.service.GetResumeViews(ctx, request.GetCursor(), request.GetResumeId())
+	viewList, err := s.service.ListResumeView(ctx, request.GetCursor(), request.GetResumeId())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "viewHandler.GetResumeViews: %v", err)
+		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "viewHandler.ListResumeView: %v", err)
 	}
 
 	return viewList.ToProto(), nil
