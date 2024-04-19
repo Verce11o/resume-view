@@ -3,14 +3,15 @@ package services
 import (
 	"context"
 	"github.com/Verce11o/resume-view/internal/models"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
 type ViewRepository interface {
-	CreateView(ctx context.Context, resumeID, companyID string) (string, error)
-	GetViews(ctx context.Context, cursor, resumeID string) (models.ViewList, error)
+	CreateView(ctx context.Context, resumeID, companyID string) (uuid.UUID, error)
+	ListResumeView(ctx context.Context, cursor, resumeID string) (models.ViewList, error)
 }
 
 type ViewService struct {
@@ -23,7 +24,7 @@ func NewViewService(log *zap.SugaredLogger, tracer trace.Tracer, repo ViewReposi
 	return &ViewService{log: log, tracer: tracer, repo: repo}
 }
 
-func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string) (string, error) {
+func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string) (uuid.UUID, error) {
 	ctx, span := v.tracer.Start(ctx, "viewService.CreateView")
 	defer span.End()
 
@@ -31,7 +32,7 @@ func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return "", err
+		return uuid.Nil, err
 	}
 
 	return viewID, nil
@@ -41,7 +42,7 @@ func (v *ViewService) ListResumeView(ctx context.Context, cursor, resumeID strin
 	ctx, span := v.tracer.Start(ctx, "viewService.ListResumeView")
 	defer span.End()
 
-	viewList, err := v.repo.GetViews(ctx, cursor, resumeID)
+	viewList, err := v.repo.ListResumeView(ctx, cursor, resumeID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

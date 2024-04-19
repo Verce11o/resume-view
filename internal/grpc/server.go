@@ -5,6 +5,7 @@ import (
 	"github.com/Verce11o/resume-view/internal/models"
 	"github.com/Verce11o/resume-view/lib/grpc_errors"
 	pb "github.com/Verce11o/resume-view/protos/gen/go"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -13,7 +14,7 @@ import (
 )
 
 type ViewService interface {
-	CreateView(ctx context.Context, resumeID, companyID string) (string, error)
+	CreateView(ctx context.Context, resumeID, companyID string) (uuid.UUID, error)
 	ListResumeView(ctx context.Context, cursor, resumeID string) (models.ViewList, error)
 }
 
@@ -39,7 +40,7 @@ func (s *Server) CreateView(ctx context.Context, request *pb.CreateViewRequest) 
 		return nil, status.Errorf(grpc_errors.ParseGRPCErrStatusCode(err), "viewHandler.CreateView: %v", err)
 	}
 
-	return &pb.CreateViewResponse{ViewId: viewID}, nil
+	return &pb.CreateViewResponse{ViewId: viewID.String()}, nil
 
 }
 

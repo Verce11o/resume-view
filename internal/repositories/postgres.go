@@ -24,11 +24,11 @@ func NewViewRepository(db *pgxpool.Pool, tracer trace.Tracer) *ViewRepository {
 	return &ViewRepository{db: db, tracer: tracer}
 }
 
-func (r *ViewRepository) CreateView(ctx context.Context, resumeID, companyID string) (string, error) {
+func (r *ViewRepository) CreateView(ctx context.Context, resumeID, companyID string) (uuid.UUID, error) {
 	ctx, span := r.tracer.Start(ctx, "viewRepository.CreateView")
 	defer span.End()
 
-	var id string
+	var id uuid.UUID
 
 	q := `INSERT INTO views (resume_id, company_id) VALUES ($1, $2) RETURNING id`
 
@@ -36,14 +36,14 @@ func (r *ViewRepository) CreateView(ctx context.Context, resumeID, companyID str
 		Scan(&id)
 
 	if err != nil {
-		return "", err
+		return uuid.Nil, err
 	}
 
 	return id, nil
 }
 
-func (r *ViewRepository) GetViews(ctx context.Context, cursor, resumeID string) (models.ViewList, error) {
-	ctx, span := r.tracer.Start(ctx, "viewRepository.GetViews")
+func (r *ViewRepository) ListResumeView(ctx context.Context, cursor, resumeID string) (models.ViewList, error) {
+	ctx, span := r.tracer.Start(ctx, "viewRepository.ListResumeView")
 	defer span.End()
 
 	var viewedAt time.Time
