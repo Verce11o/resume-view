@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"github.com/Verce11o/resume-view/internal/models"
+	"github.com/Verce11o/resume-view/lib/grpc_errors"
 	"github.com/Verce11o/resume-view/lib/pagination"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -59,6 +61,10 @@ func (r *ViewRepository) GetViews(ctx context.Context, cursor, resumeID string) 
 	q := "SELECT COUNT(*) FROM views WHERE resume_id = $1"
 
 	err = r.db.QueryRow(ctx, q, resumeID).Scan(&total)
+	if err != nil && errors.Is(err, pgx.ErrNoRows) || total == 0 {
+		return models.ViewList{}, grpc_errors.ErrNotFound
+	}
+
 	if err != nil {
 		return models.ViewList{}, err
 	}
