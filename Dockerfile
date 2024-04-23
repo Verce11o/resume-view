@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine
+FROM golang:1.22-alpine as build
 
 WORKDIR /app
 
@@ -8,10 +8,15 @@ RUN go mod download
 
 COPY . .
 
-WORKDIR /app/cmd/view
+WORKDIR /app/cmd/
 
-RUN go build -o resumeview
+RUN go build -o /build main.go
 
-EXPOSE 3007
+FROM alpine:latest
 
-CMD ["./resumeview"]
+WORKDIR /app
+
+COPY --from=build /build /app/build
+COPY --from=build /app/cmd/config.yml /app
+
+CMD ["/app/build"]
