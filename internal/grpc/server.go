@@ -45,7 +45,7 @@ func (s *Server) CreateView(ctx context.Context, request *pb.CreateViewRequest) 
 }
 
 func (s *Server) GetResumeViews(ctx context.Context, request *pb.GetResumeViewsRequest) (*pb.GetResumeViewsResponse, error) {
-	ctx, span := s.tracer.Start(ctx, "viewHandler.ListResumeView")
+	ctx, span := s.tracer.Start(ctx, "viewHandler.GetResumeViews")
 	defer span.End()
 
 	viewList, err := s.service.ListResumeView(ctx, request.GetCursor(), request.GetResumeId())

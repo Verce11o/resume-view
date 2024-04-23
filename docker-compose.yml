@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+
+  resume-view:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env
+
+    image: resume-view:latest
+
+    ports:
+      - "3007:3007"
+    depends_on:
+      - postgres
+
+    networks:
+      - backend-network
+
+
+  postgres:
+    container_name: resume-view_postgres
+    image: postgres:latest
+
+    ports:
+      - "5432:5432"
+    environment:
+      - "POSTGRES_PASSWORD=vercello"
+      - "POSTGRES_DB=resume-views"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - backend-network
+
+volumes:
+  pgdata:
+
+networks:
+  backend-network:
+    driver: bridge

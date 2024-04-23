@@ -17,6 +17,5 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=build /build /app/build
-COPY --from=build /app/cmd/config.yml /app
 
 CMD ["/app/build"]
