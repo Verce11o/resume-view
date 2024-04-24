@@ -34,6 +34,7 @@ services:
       - "CLIENT_TIMEOUT=5s"
       - "RETRIES_COUNT=3"
       - "SERVER_PORT:3008"
+      - "LOG_LEVEL=DEBUG"
 
     image: echo-service:latest
 
@@ -52,7 +53,6 @@ services:
 
     depends_on:
       - postgres
-      - resume-view
 
     environment:
       WAIT_HOSTS: postgres:5432
