@@ -20,6 +20,7 @@ services:
 
     environment:
       WAIT_HOSTS: postgres:5432, jaeger:4317
+      WAIT_COMMAND: goose -dir migrations postgres "host=postgres user=postgres password=vercello dbname=resume-views sslmode=disable" up
 
     networks:
       - backend-network
@@ -44,20 +45,6 @@ services:
     depends_on:
       - resume-view
 
-    networks:
-      - backend-network
-
-  migrator:
-    image: resume-view:latest
-    container_name: migrator
-
-    depends_on:
-      - postgres
-
-    environment:
-      WAIT_HOSTS: postgres:5432
-
-    command: [ "goose", "-dir", "migrations", "postgres", "host=postgres user=postgres password=vercello dbname=resume-views sslmode=disable", "up" ]
     networks:
       - backend-network
 
