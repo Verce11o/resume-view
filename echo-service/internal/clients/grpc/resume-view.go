@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func NewViewServiceClient(ctx context.Context, cfg *config.Config) (pb.ViewServiceClient, error) {
+func NewViewServiceClient(ctx context.Context, log *slog.Logger, cfg *config.Config) (pb.ViewServiceClient, error) {
 	timeout, err := time.ParseDuration(cfg.ClientTimeout)
 
 	if err != nil {
@@ -40,7 +40,7 @@ func NewViewServiceClient(ctx context.Context, cfg *config.Config) (pb.ViewServi
 	cc, err := grpc.DialContext(ctx, cfg.ViewServiceEndpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
-			grpclog.UnaryClientInterceptor(InterceptorLogger(), logOpts...),
+			grpclog.UnaryClientInterceptor(InterceptorLogger(log), logOpts...),
 			grpcretry.UnaryClientInterceptor(retryOpts...),
 		))
 
@@ -51,8 +51,8 @@ func NewViewServiceClient(ctx context.Context, cfg *config.Config) (pb.ViewServi
 	return pb.NewViewServiceClient(cc), nil
 }
 
-func InterceptorLogger() grpclog.Logger {
+func InterceptorLogger(l *slog.Logger) grpclog.Logger {
 	return grpclog.LoggerFunc(func(ctx context.Context, lvl grpclog.Level, msg string, fields ...any) {
-		slog.Log(ctx, slog.Level(lvl), msg, fields)
+		l.Log(ctx, slog.Level(lvl), msg, fields...)
 	})
 }

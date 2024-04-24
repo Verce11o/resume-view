@@ -16,11 +16,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 	defer cancel()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
 
 	cfg := config.Load()
-	client, err := grpc.NewViewServiceClient(ctx, cfg)
+	client, err := grpc.NewViewServiceClient(ctx, logger, cfg)
 
 	if err != nil {
 		slog.Error("Error creating new view client: %v", err)
