@@ -46,6 +46,17 @@ services:
     networks:
       - backend-network
 
+  migrator:
+    build:
+      context: resume-view
+      dockerfile: Dockerfile
+
+    depends_on:
+      - postgres
+    command: [ "goose", "-dir", "migrations", "postgres", "host=postgres user=postgres password=vercello dbname=resume-views sslmode=disable", "up" ]
+    networks:
+      - backend-network
+
   postgres:
     container_name: resume-view_postgres
     image: postgres:latest
@@ -56,7 +67,7 @@ services:
       - "POSTGRES_PASSWORD=vercello"
       - "POSTGRES_DB=resume-views"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - resume-views-pgdata:/var/lib/postgresql/data
     networks:
       - backend-network
 
@@ -73,7 +84,7 @@ services:
       - backend-network
 
 volumes:
-  pgdata:
+  resume-views-pgdata:
 
 networks:
   backend-network:
