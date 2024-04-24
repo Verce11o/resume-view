@@ -3,22 +3,48 @@ services:
 
   resume-view:
     build:
-      context: .
+      context: resume-view
       dockerfile: Dockerfile
 
     env_file:
-      - .env
+      - resume-view/.env
 
     image: resume-view:latest
 
     ports:
       - "3007:3007"
+
     depends_on:
       - postgres
+      - jaeger
+
+    environment:
+      WAIT_HOSTS: postgres:5432, jaeger:4317
 
     networks:
       - backend-network
 
+  echo-service:
+    build:
+      context: echo-service
+      dockerfile: Dockerfile
+
+    environment:
+      - "VIEW_SERVICE_ENDPOINT=resume-view:3007"
+      - "CLIENT_TIMEOUT=5s"
+      - "RETRIES_COUNT=3"
+      - "SERVER_PORT:3008"
+
+    image: echo-service:latest
+
+    ports:
+      - "3008:3008"
+
+    depends_on:
+      - resume-view
+
+    networks:
+      - backend-network
 
   postgres:
     container_name: resume-view_postgres
