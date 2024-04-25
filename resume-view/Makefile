@@ -1,5 +1,3 @@
-include .env
-
 .PHONY: test format lint gen-proto build migrate-up migrate-down
 
 test:
