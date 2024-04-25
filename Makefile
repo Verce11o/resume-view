@@ -1,8 +1,18 @@
-.PHONY: all test build help
+.PHONY: all test build lint
 
-all:
-	+$(MAKE) -C echo-service all
-	+$(MAKE) -C resume-view all
+SERVICES = echo-service resume-view
+
+all: $(SERVICES)
+	$(foreach service,$(SERVICES),$(MAKE) -C $(service) all;)
+
+build: $(SERVICES)
+	$(foreach service,$(SERVICES),$(MAKE) -C $(service) build;)
+
+lint: $(SERVICES)
+	$(foreach service,$(SERVICES),$(MAKE) -C $(service) lint;)
+
+test: $(SERVICES)
+	$(foreach service,$(SERVICES),$(MAKE) -C $(service) test;)
 
 compose-build:
 	docker-compose build
