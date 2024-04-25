@@ -16,7 +16,14 @@ FROM alpine:latest
 
 WORKDIR /app
 
+RUN apk add curl make
+
+RUN curl -fsSL \
+        https://raw.githubusercontent.com/pressly/goose/master/install.sh |\
+        sh
+
 COPY --from=build /build /app/build
+COPY --from=build /app/migrations /app/migrations
 
 COPY --from=ghcr.io/ufoscout/docker-compose-wait:latest /wait /wait
 

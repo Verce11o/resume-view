@@ -11,6 +11,7 @@ type Config struct {
 	ViewServiceEndpoint string `env:"VIEW_SERVICE_ENDPOINT" env-default:"localhost:3007"`
 	ClientTimeout       string `env:"CLIENT_TIMEOUT" env-default:"5s"`
 	RetriesCount        string `env:"RETRIES_COUNT" env-default:"3"`
+	LogLevel            string `env:"LOG_LEVEL" env-default:"INFO"`
 }
 
 type Server struct {

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -16,11 +17,12 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 	defer cancel()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	cfg := config.Load()
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: parseLogLevel(cfg.LogLevel)}))
 	slog.SetDefault(logger)
 
-	cfg := config.Load()
-	client, err := grpc.NewViewServiceClient(ctx, cfg)
+	client, err := grpc.NewViewServiceClient(ctx, logger, cfg)
 
 	if err != nil {
 		slog.Error("Error creating new view client: %v", err)
@@ -40,4 +42,19 @@ func main() {
 		}
 	}
 
+}
+
+func parseLogLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
