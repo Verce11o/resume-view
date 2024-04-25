@@ -388,9 +388,9 @@ var file_view_proto_depIdxs = []int32{
 	4, // 0: view.GetResumeViewsResponse.views:type_name -> view.View
 	5, // 1: view.View.viewed_at:type_name -> google.protobuf.Timestamp
 	0, // 2: view.ViewService.CreateView:input_type -> view.CreateViewRequest
-	2, // 3: view.ViewService.ListResumeView:input_type -> view.GetResumeViewsRequest
+	2, // 3: view.ViewService.GetResumeViews:input_type -> view.GetResumeViewsRequest
 	1, // 4: view.ViewService.CreateView:output_type -> view.CreateViewResponse
-	3, // 5: view.ViewService.ListResumeView:output_type -> view.GetResumeViewsResponse
+	3, // 5: view.ViewService.GetResumeViews:output_type -> view.GetResumeViewsResponse
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

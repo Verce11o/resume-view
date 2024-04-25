@@ -22,6 +22,9 @@ linters:
     - predeclared
     - reassign
 
+issues:
+  exclude:
+    - "Error return value of `log.Sync` is not checked"
 
 linters-settings:
   staticcheck:

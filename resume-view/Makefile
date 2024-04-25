@@ -23,4 +23,4 @@ migrate-up:
 migrate-down:
 	goose -dir ./migrations postgres "host=${POSTGRES_HOST} user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} port=${POSTGRES_PORT} dbname=${POSTGRES_DB} sslmode=disable" down
 
-all: test format lint gen-proto build migrate-up
+all: test format lint gen-proto build
