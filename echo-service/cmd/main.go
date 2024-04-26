@@ -35,7 +35,7 @@ func main() {
 		select {
 		case <-ticker.C:
 			resp, _ := client.GetResumeViews(ctx, &pb.GetResumeViewsRequest{})
-			slog.Info("Total views: ", "views", resp.GetTotal())
+			slog.Info("Total views amount: ", "views", resp.GetTotal())
 		case <-ctx.Done():
 			slog.Info("Stopping echo-service")
 			return
