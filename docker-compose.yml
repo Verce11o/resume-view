@@ -3,8 +3,8 @@ services:
 
   resume-view:
     build:
-      context: resume-view
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: resume-view/Dockerfile
 
     env_file:
       - resume-view/.env
@@ -27,8 +27,8 @@ services:
 
   echo-service:
     build:
-      context: echo-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: echo-service/Dockerfile
 
     environment:
       - "VIEW_SERVICE_ENDPOINT=resume-view:3007"

@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"github.com/Verce11o/resume-view/internal/app"
-	"github.com/Verce11o/resume-view/internal/config"
-	"github.com/Verce11o/resume-view/lib/logger"
+	"github.com/Verce11o/resume-view/resume-view/internal/app"
+	"github.com/Verce11o/resume-view/resume-view/internal/config"
+	"github.com/Verce11o/resume-view/resume-view/internal/lib/logger"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,7 +16,7 @@ func main() {
 
 	cfg := config.Load()
 
-	log := logger.NewLogger(cfg)
+	log := logger.NewLogger()
 
 	application, err := app.New(ctx, cfg, log)
 

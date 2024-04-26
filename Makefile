@@ -1,18 +1,17 @@
-.PHONY: all test build lint
+.PHONY: all build lint test
 
 SERVICES = echo-service resume-view
 
-all: $(SERVICES)
-	$(foreach service,$(SERVICES),$(MAKE) -C $(service) all;)
 
 build: $(SERVICES)
 	$(foreach service,$(SERVICES),$(MAKE) -C $(service) build;)
 
-lint: $(SERVICES)
-	$(foreach service,$(SERVICES),$(MAKE) -C $(service) lint;)
+lint:
+	golangci-lint run
 
-test: $(SERVICES)
-	$(foreach service,$(SERVICES),$(MAKE) -C $(service) test;)
+test:
+	go test -v ./...
+
 
 compose-build:
 	docker-compose build

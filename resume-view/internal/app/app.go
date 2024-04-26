@@ -3,12 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/Verce11o/resume-view/internal/config"
-	viewgrpc "github.com/Verce11o/resume-view/internal/grpc"
-	"github.com/Verce11o/resume-view/internal/repositories"
-	"github.com/Verce11o/resume-view/internal/services"
-	postgresLib "github.com/Verce11o/resume-view/lib/db/postgres"
-	"github.com/Verce11o/resume-view/lib/tracer"
+	"github.com/Verce11o/resume-view/resume-view/internal/config"
+	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/grpc"
+	postgresLib "github.com/Verce11o/resume-view/resume-view/internal/lib/db/postgres"
+	"github.com/Verce11o/resume-view/resume-view/internal/lib/tracer"
+	"github.com/Verce11o/resume-view/resume-view/internal/repositories"
+	"github.com/Verce11o/resume-view/resume-view/internal/services"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
@@ -28,7 +28,14 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 		return nil, err
 	}
 
-	db, err := postgresLib.Run(ctx, cfg)
+	db, err := postgresLib.Run(ctx, postgresLib.Config{
+		User:     cfg.DB.User,
+		Password: cfg.DB.Password,
+		Host:     cfg.DB.Host,
+		Port:     cfg.DB.Port,
+		Database: cfg.DB.Name,
+		SSLMode:  cfg.DB.SSLMode,
+	})
 	if err != nil {
 		return nil, err
 	}

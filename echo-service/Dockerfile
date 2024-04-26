@@ -6,9 +6,9 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY .. .
+COPY . .
 
-WORKDIR /app/cmd/
+WORKDIR /app/echo-service/cmd/
 
 RUN go build -o /build main.go
 

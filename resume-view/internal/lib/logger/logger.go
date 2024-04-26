@@ -1,23 +1,18 @@
 package logger
 
 import (
-	"github.com/Verce11o/resume-view/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-const (
-	envProd = "prod"
-)
+func NewProdLogger() *zap.SugaredLogger {
+	log, _ := zap.NewProduction()
+	defer log.Sync()
+	return log.Sugar()
+}
 
-func NewLogger(cfg *config.Config) *zap.SugaredLogger {
+func NewLogger() *zap.SugaredLogger {
 	var log *zap.Logger
-
-	if cfg.Env == envProd {
-		log, _ = zap.NewProduction()
-		defer log.Sync()
-		return log.Sugar()
-	}
 
 	log, _ = zap.Config{
 		Level:             zap.NewAtomicLevelAt(zapcore.DebugLevel),

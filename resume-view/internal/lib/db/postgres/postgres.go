@@ -3,13 +3,21 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"github.com/Verce11o/resume-view/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Run(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
+type Config struct {
+	User     string
+	Password string
+	Host     string
+	Port     string
+	Database string
+	SSLMode  string
+}
+
+func Run(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	db, err := pgxpool.New(ctx, fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.DB.User, cfg.DB.Password, cfg.DB.Host, cfg.DB.Port, cfg.DB.Name, cfg.DB.SSLMode))
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.SSLMode))
 
 	if err != nil {
 		return nil, err

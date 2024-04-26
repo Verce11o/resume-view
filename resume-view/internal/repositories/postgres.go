@@ -3,9 +3,9 @@ package repositories
 import (
 	"context"
 	"errors"
-	"github.com/Verce11o/resume-view/internal/models"
-	"github.com/Verce11o/resume-view/lib/grpc_errors"
-	"github.com/Verce11o/resume-view/lib/pagination"
+	"github.com/Verce11o/resume-view/resume-view/internal/lib/grpc_errors"
+	"github.com/Verce11o/resume-view/resume-view/internal/lib/pagination"
+	"github.com/Verce11o/resume-view/resume-view/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -53,7 +53,7 @@ func (r *ViewRepository) ListResumeView(ctx context.Context, cursor, resumeID st
 	if cursor != "" {
 		viewedAt, viewID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.ViewList{}, err
+			return models.ViewList{}, grpc_errors.ErrInvalidCursor
 		}
 	}
 

@@ -3,7 +3,6 @@ package pagination
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/Verce11o/resume-view/lib/grpc_errors"
 	"github.com/google/uuid"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ func DecodeCursor(encodedCursor string) (time.Time, uuid.UUID, error) {
 
 	arrStr := strings.Split(string(byt), ",")
 	if len(arrStr) != 2 {
-		err = grpc_errors.ErrInvalidCursor
 		return time.Time{}, [16]byte{}, err
 	}
 

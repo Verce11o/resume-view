@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"github.com/Verce11o/resume-view/internal/models"
+	"github.com/Verce11o/resume-view/resume-view/internal/models"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
