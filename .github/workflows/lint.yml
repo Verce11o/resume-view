@@ -1,0 +1,22 @@
+name: GolangCI Lint
+run-name: Running golangci-lint
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    types:
+      - opened
+    branches:
+      - 'main'
+
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v5.0.0

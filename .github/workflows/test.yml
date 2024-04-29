@@ -1,5 +1,6 @@
-name: TestCode
-run-name: Testing code
+name: Testing Code
+run-name: Running go test
+
 on:
   workflow_dispatch:
 
@@ -8,6 +9,7 @@ on:
       - opened
     branches:
       - 'main'
+
 
 jobs:
   testing:
@@ -22,14 +24,6 @@ jobs:
           go-version: '1.22.1'
           cache-dependency-path: go.sum
 
-      - name: Install dependencies
-        run: go mod download
 
-      - name: Run Tests
-        run: make test
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v5.0.0
-
-      - name: Run Build
-        run: make build
+      - name: Run tests
+        run: go test -v ./...
