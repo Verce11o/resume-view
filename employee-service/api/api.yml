@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: Employees API
+  description: API for employees
+  version: 1.0.0
+servers:
+  - url: http://localhost:3009/api/v1
+
+paths:
+  /employee:
+
+    post:
+      operationId: CreateEmployee
+      summary: Create employee
+      description: Creates employee with given position id.
+
+      tags:
+        - employees
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployee'
+
+  /employee/{id}:
+    get:
+      summary: Get employee by id
+      operationId: GetEmployeeByID
+      tags:
+        - employees
+
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          description: Employee ID
+          required: true
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: employee not found
+    put:
+      tags:
+        - employees
+
+      summary: Update employee by id
+      operationId: UpdateEmployeeByID
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          description: Employee ID
+          required: true
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmployee"
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: employee not found
+
+    delete:
+      tags:
+        - employees
+
+      summary: Delete employee by id
+      operationId: DeleteEmployeeByID
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          description: Employee ID
+          required: true
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: success
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: employee not found
+
+  /position:
+    post:
+      operationId: CreatePosition
+      summary: Create position
+      description: Creates position
+
+      tags:
+        - position
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePosition'
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+
+  /position/{id}:
+    get:
+      operationId: GetPositionByID
+      summary: Get position by id
+      description: Gets position
+      tags:
+        - position
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          description: ID of the position
+          required: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: position not found
+
+    put:
+      operationId: UpdatePositionByID
+      summary: Update position by id
+      description: Updates a position with given details
+      tags:
+        - position
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          description: ID of the position
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePosition'
+      responses:
+        '200':
+          description: Position updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+        '404':
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: position not found
+
+    delete:
+      operationId: DeletePositionByID
+      summary: Delete position by id
+      description: Deletes a position by ID
+      tags:
+        - position
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          description: ID of the position to be deleted
+          required: true
+      responses:
+        '200':
+          description: Position deleted successfully
+        '404':
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: position not found
+
+components:
+  schemas:
+
+    CreateEmployee:
+      type: object
+
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        position_id:
+          type: string
+      required:
+        - first_name
+        - last_name
+        - position_id
+
+    UpdateEmployee:
+      type: object
+
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        position_id:
+          type: string
+      required:
+        - first_name
+        - last_name
+        - position_id
+
+    CreatePosition:
+      type: object
+
+      properties:
+        name:
+          type: string
+        salary:
+          type: integer
+      required:
+        - name
+        - salary
+
+    UpdatePosition:
+      type: object
+      properties:
+        name:
+          type: string
+        salary:
+          type: integer
+      required:
+        - name
+        - salary
+
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of employee
+        first_name:
+          type: string
+          description: Employee first name
+
+        last_name:
+          type: string
+          description: Employee last name
+
+        position_id:
+          type: string
+          description: Employee position id
+
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of position
+        name:
+          type: string
+          description: Position name
+        salary:
+          type: integer
+          description: Position salary
+
+
