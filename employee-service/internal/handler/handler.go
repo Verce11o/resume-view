@@ -79,7 +79,7 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 func (h *Handler) DeleteEmployeeByID(c *gin.Context, id string) {
 	err := h.employeeService.DeleteEmployee(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 

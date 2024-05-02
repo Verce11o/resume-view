@@ -54,7 +54,9 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id string) (models
 }
 
 func (p *PositionRepository) UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error) {
-	q := "UPDATE positions SET name = COALESCE(NULLIF($2, ''), name), salary = COALESCE(NULLIF($3, 0), salary) WHERE id = $1 RETURNING id, name, salary, created_at, updated_at"
+	q := `UPDATE positions SET name = COALESCE(NULLIF($2, ''), name), 
+                     		   salary = COALESCE(NULLIF($3, 0), salary), updated_at = NOW()
+                 WHERE id = $1 RETURNING id, name, salary, created_at, updated_at`
 
 	row, err := p.db.Query(ctx, q, id, request.Name, request.Salary)
 	if err != nil {
