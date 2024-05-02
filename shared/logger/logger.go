@@ -3,6 +3,7 @@ package logger
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"strings"
 )
 
 func NewProdLogger() *zap.SugaredLogger {
@@ -11,11 +12,11 @@ func NewProdLogger() *zap.SugaredLogger {
 	return log.Sugar()
 }
 
-func NewLogger() *zap.SugaredLogger {
+func NewLogger(logLevel string) *zap.SugaredLogger {
 	var log *zap.Logger
 
 	log, _ = zap.Config{
-		Level:             zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Level:             zap.NewAtomicLevelAt(parseLogLevel(logLevel)),
 		DisableStacktrace: false,
 		Sampling:          nil,
 		Encoding:          "console",
@@ -39,4 +40,19 @@ func NewLogger() *zap.SugaredLogger {
 	defer log.Sync()
 
 	return log.Sugar()
+}
+
+func parseLogLevel(level string) zapcore.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	default:
+		return zapcore.InfoLevel
+	}
 }

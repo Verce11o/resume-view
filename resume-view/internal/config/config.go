@@ -6,10 +6,10 @@ import (
 )
 
 type Config struct {
-	Env    string `env:"env"`
-	Server Server
-	DB     DB
-	Jaeger Jaeger
+	LogLevel string `env:"LOG_LEVEL" env-default:"INFO"`
+	Server   Server
+	DB       DB
+	Jaeger   Jaeger
 }
 
 type Server struct {

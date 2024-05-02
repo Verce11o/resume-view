@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/Verce11o/resume-view/resume-view/internal/app"
 	"github.com/Verce11o/resume-view/resume-view/internal/config"
-	"github.com/Verce11o/resume-view/resume-view/internal/lib/logger"
+	"github.com/Verce11o/resume-view/shared/logger"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,7 +16,7 @@ func main() {
 
 	cfg := config.Load()
 
-	log := logger.NewLogger()
+	log := logger.NewLogger(cfg.LogLevel)
 
 	application, err := app.New(ctx, cfg, log)
 
