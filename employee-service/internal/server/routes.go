@@ -44,9 +44,12 @@ func (s *Server) InitRoutes() *gin.Engine {
 
 	positionService := service.NewPositionService(s.log, positionRepo)
 
+	employeeRepo := postgres.NewEmployeeRepository(s.db)
+	employeeService := service.NewEmployeeService(s.log, employeeRepo)
+
 	apiGroup := router.Group("/api/v1")
 
-	api.RegisterHandlers(apiGroup, handler.NewHandler(s.log, positionService, nil))
+	api.RegisterHandlers(apiGroup, handler.NewHandler(s.log, positionService, employeeService))
 
 	return router
 }
