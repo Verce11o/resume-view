@@ -20,7 +20,6 @@ services:
 
     environment:
       WAIT_HOSTS: postgres:5432, jaeger:4317
-      WAIT_COMMAND: goose -dir migrations postgres "host=postgres user=postgres password=vercello dbname=resume-views sslmode=disable" up
 
     networks:
       - backend-network
@@ -48,6 +47,34 @@ services:
     networks:
       - backend-network
 
+  employee-service:
+    build:
+      context: .
+      dockerfile: employee-service/Dockerfile
+
+    image: employee-service:latest
+
+    environment:
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_PASSWORD=vercello"
+      - "POSTGRES_HOST=postgres"
+      - "POSTGRES_DB=resume-views"
+      - "POSTGRES_SSL_MODE=disable"
+
+      - "MAIN_DATABASE=postgres"
+      - "LOG_LEVEL=INFO"
+      - "SERVER_PORT=:3009"
+      - "WAIT_HOSTS=postgres:5432"
+
+    ports:
+      - "3009:3009"
+
+    depends_on:
+      - postgres
+
+    networks:
+      - backend-network
+
   postgres:
     container_name: resume-view_postgres
     image: postgres:latest
@@ -62,6 +89,21 @@ services:
     networks:
       - backend-network
 
+    healthcheck:
+      test: pg_isready -U postgres -d resume-views
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    networks:
+      - backend-network
+    command: [ "-path", "migrations", "-database",  "postgres://postgres:vercello@postgres:5432/resume-views?sslmode=disable", "up" ]
+    depends_on:
+      - postgres
+    volumes:
+      - migrations:/migrations
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -74,8 +116,15 @@ services:
     networks:
       - backend-network
 
+
 volumes:
   pgdata:
+  migrations:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: 'migrations'
 
 networks:
   backend-network:
