@@ -12,7 +12,7 @@ paths:
     post:
       operationId: CreateEmployee
       summary: Create employee
-      description: Creates employee with given position id.
+      description: Creates employee with corresponding position.
 
       tags:
         - employees
@@ -326,12 +326,16 @@ components:
           type: string
         last_name:
           type: string
-        position_id:
+        position_name:
           type: string
+        salary:
+          type: integer
+
       required:
         - first_name
         - last_name
-        - position_id
+        - position_name
+        - salary
 
     UpdateEmployee:
       type: object
