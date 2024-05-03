@@ -23,22 +23,39 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 }
 
 func (p *EmployeeRepository) CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error) {
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return models.Employee{}, err
+	}
 
-	id := uuid.New()
-	q := "INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) RETURNING id, first_name, last_name, position_id,  created_at, updated_at"
-	row, err := p.db.Query(ctx, q, id, request.FirstName, request.LastName, request.PositionId)
+	defer tx.Rollback(ctx)
+
+	positionID := uuid.New()
+
+	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
+
+	_, err = tx.Exec(ctx, createPositionQuery, positionID, request.PositionName, request.Salary)
+	if err != nil {
+		return models.Employee{}, err
+	}
+
+	employeeID := uuid.New()
+
+	createEmployeeQuery := "INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) RETURNING id, first_name, last_name, position_id,  created_at, updated_at"
+
+	rows, err := tx.Query(ctx, createEmployeeQuery, employeeID, request.FirstName, request.LastName, positionID)
 
 	if err != nil {
 		return models.Employee{}, err
 	}
 
-	employee, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Employee])
+	employee, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
 		return models.Employee{}, err
 	}
 
-	return employee, nil
+	return employee, tx.Commit(ctx)
 }
 
 func (p *EmployeeRepository) GetEmployee(ctx context.Context, id string) (models.Employee, error) {
