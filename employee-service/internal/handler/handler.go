@@ -12,6 +12,7 @@ import (
 type PositionService interface {
 	CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error)
 	GetPosition(ctx context.Context, id string) (models.Position, error)
+	GetPositionList(ctx context.Context, cursor string) (models.PositionList, error)
 	UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error)
 	DeletePosition(ctx context.Context, id string) error
 }
@@ -19,6 +20,7 @@ type PositionService interface {
 type EmployeeService interface {
 	CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error)
 	GetEmployee(ctx context.Context, id string) (models.Employee, error)
+	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
 	UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error)
 	DeleteEmployee(ctx context.Context, id string) error
 }
@@ -52,6 +54,19 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 
 func (h *Handler) GetEmployeeByID(c *gin.Context, id string) {
 	employee, err := h.employeeService.GetEmployee(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, employee)
+}
+
+func (h *Handler) GetEmployeeList(c *gin.Context, params api.GetEmployeeListParams) {
+	var cursor string
+	if params.Cursor != nil {
+		cursor = *params.Cursor
+	}
+	employee, err := h.employeeService.GetEmployeeList(c.Request.Context(), cursor)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -110,6 +125,20 @@ func (h *Handler) GetPositionByID(c *gin.Context, id string) {
 		return
 	}
 	c.JSON(http.StatusOK, position)
+}
+
+func (h *Handler) GetPositionList(c *gin.Context, params api.GetPositionListParams) {
+	var cursor string
+	if params.Cursor != nil {
+		cursor = *params.Cursor
+	}
+
+	employee, err := h.positionService.GetPositionList(c.Request.Context(), cursor)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, employee)
 }
 
 func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {

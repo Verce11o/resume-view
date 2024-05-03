@@ -11,6 +11,7 @@ import (
 type EmployeeRepository interface {
 	CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error)
 	GetEmployee(ctx context.Context, id string) (models.Employee, error)
+	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
 	UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error)
 	DeleteEmployee(ctx context.Context, id string) error
 }
@@ -38,6 +39,14 @@ func (s *EmployeeService) GetEmployee(ctx context.Context, id string) (models.Em
 		return models.Employee{}, fmt.Errorf("get employee: %w", err)
 	}
 	return employee, nil
+}
+
+func (s *EmployeeService) GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error) {
+	employeeList, err := s.repo.GetEmployeeList(ctx, cursor)
+	if err != nil {
+		return models.EmployeeList{}, fmt.Errorf("get employee list: %w", err)
+	}
+	return employeeList, nil
 }
 
 func (s *EmployeeService) UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error) {
