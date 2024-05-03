@@ -71,6 +71,18 @@ type UpdatePosition struct {
 	Salary int    `json:"salary"`
 }
 
+// GetEmployeeListParams defines parameters for GetEmployeeList.
+type GetEmployeeListParams struct {
+	// Cursor Pagination cursor for next page.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// GetPositionListParams defines parameters for GetPositionList.
+type GetPositionListParams struct {
+	// Cursor Pagination cursor for next page.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
 // CreateEmployeeJSONRequestBody defines body for CreateEmployee for application/json ContentType.
 type CreateEmployeeJSONRequestBody = CreateEmployee
 
@@ -85,6 +97,9 @@ type UpdatePositionByIDJSONRequestBody = UpdatePosition
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get employee list
+	// (GET /employee)
+	GetEmployeeList(c *gin.Context, params GetEmployeeListParams)
 	// Create employee
 	// (POST /employee)
 	CreateEmployee(c *gin.Context)
@@ -97,6 +112,9 @@ type ServerInterface interface {
 	// Update employee by id
 	// (PUT /employee/{id})
 	UpdateEmployeeByID(c *gin.Context, id string)
+	// Get position list
+	// (GET /position)
+	GetPositionList(c *gin.Context, params GetPositionListParams)
 	// Create position
 	// (POST /position)
 	CreatePosition(c *gin.Context)
@@ -119,6 +137,32 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// GetEmployeeList operation middleware
+func (siw *ServerInterfaceWrapper) GetEmployeeList(c *gin.Context) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetEmployeeListParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "cursor", c.Request.URL.Query(), &params.Cursor)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter cursor: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetEmployeeList(c, params)
+}
 
 // CreateEmployee operation middleware
 func (siw *ServerInterfaceWrapper) CreateEmployee(c *gin.Context) {
@@ -203,6 +247,32 @@ func (siw *ServerInterfaceWrapper) UpdateEmployeeByID(c *gin.Context) {
 	}
 
 	siw.Handler.UpdateEmployeeByID(c, id)
+}
+
+// GetPositionList operation middleware
+func (siw *ServerInterfaceWrapper) GetPositionList(c *gin.Context) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPositionListParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "cursor", c.Request.URL.Query(), &params.Cursor)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter cursor: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetPositionList(c, params)
 }
 
 // CreatePosition operation middleware
@@ -317,10 +387,12 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.GET(options.BaseURL+"/employee", wrapper.GetEmployeeList)
 	router.POST(options.BaseURL+"/employee", wrapper.CreateEmployee)
 	router.DELETE(options.BaseURL+"/employee/:id", wrapper.DeleteEmployeeByID)
 	router.GET(options.BaseURL+"/employee/:id", wrapper.GetEmployeeByID)
 	router.PUT(options.BaseURL+"/employee/:id", wrapper.UpdateEmployeeByID)
+	router.GET(options.BaseURL+"/position", wrapper.GetPositionList)
 	router.POST(options.BaseURL+"/position", wrapper.CreatePosition)
 	router.DELETE(options.BaseURL+"/position/:id", wrapper.DeletePositionByID)
 	router.GET(options.BaseURL+"/position/:id", wrapper.GetPositionByID)
@@ -330,21 +402,23 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xXTW/jNhD9KwLbo2ApTS7VLWkCw5fCQNFTYQS0NLYZSCJLjrxrBPrvC5L6oCzJq13H",
-	"iL03W+Twzcx7Mxy+k5hngueQoyLRO1HxDjJqfv4lgSK8ZCLlBwD9RUguQCIDs75hUuFrTjOzhgcBJCIK",
-	"Jcu3pPRJSk+tCq4YMp6/smRgvfSJhP8LJiEh0X8ukntu95SVX5/C128Qo0axISyrXf0QRt1TNKXy4Cyx",
-	"HGELsuda5Ui1f8iHqQlMQMWSCetoY+WZTV4F0/PTZq9runj2+MaDGtb/DjUjuHrPKOwReyNH1Ls8lvQP",
-	"KQdSNU7UeJw1yJCbwyHWKKPRteSPGFYb/CFx9IL6VyS3XkY2hM8sI72f5RveJ+VxufA2XDZ6V5oWhik4",
-	"SlTe43JBfLIHqazV3SychdpDLiCngpGI3M/C2b1OBsWdiSoAlzOusA9u+4tqwL0vDHfelu0hd9U/IwZI",
-	"Uv1/kTSGL22N6mSAwieemHTFPEfIDSIVImWxMQ3elE2/7dL61+8SNiQivwVtGw+qHh4cgZSlzboSPFeW",
-	"uD/C8MPQXBz/KE//FHEMShnaVZFlRhRVEjqdim6VlkNL5kqbNEwE7ywpLQ0poCGmm9dn87125emweDaM",
-	"SpoBgtRnj3Yrs5XpT1oBpO4exDSvVqsoC/CdlByX3OrMFHcrKwOl6NYECl9pJoysVZXNCT31BBU+eQgf",
-	"Ptq1phByjt6GF3nyc17+3Zh3JWP5bettfagulwHh+GQL2JfIHPCW9XF2Cd4k73PAqaSLYoD07iX8abx/",
-	"fI8/mi6uocffpMBsHqdpTN9Iwh2GTs4GzoA6NAMs2+XLzQANyIX14eL80AzgTvFVxptP3YQPjABdHHtF",
-	"KI+2E9j6YKt4aFaoXZ7SE+yLA3fO0wa5twbP+pJc8oIYeYpUyF41E2yKND1cqASbmM8swWX/nMFL3qWv",
-	"U4uOMpo7vgsxBzxReHPA81i/+kFgUh1etUhODQLThFHNAd1jbZvvNAfnyZYAUpaqnmC679/P1sylhohr",
-	"uCSa3lAYl36tvlbNGFPkawxB7mt1FTIlEdkhiigIUh7TdMcVRvdh+GdABQv2d6Rcld8CAAD//06SbyHN",
-	"FQAA",
+	"H4sIAAAAAAAC/+xYTW/jNhD9KwTbo2Bpm71Ut92mKAwUhYGip0WwYKSxzIVEckkqXSHQfy9I6osW5WiT",
+	"uLGLnhJYQ87HmzfzpEec8UpwBkwrnD5ilR2gIvbfXyQQDb9WouQNgPlFSC5Aagr2+Z5KpT8zUtlnuhGA",
+	"U6y0pKzAbYRLcuqp4IpqytlnmgeetxGW8LWmEnKcfpp6mt7r33IX9bfw+y+QaePFpbDrrOYpLIanSElk",
+	"M3lEmYYC5Cy0LpDOPhTD2gLmoDJJhQt0OIWsEerczOJ01fOPbm8R3yPo3UZPQLPg19gsuj1Cb+GK3grR",
+	"fH5JGyjVMlDLefZOQmGGU+y9LGY3gr9wsDOIQs0xS+ovkV87jVwKb0kjY0/Zns9B+bDboj2XQ78rAwvV",
+	"JUw6UaEPuy2O8ANI5U692ySbxETIBTAiKE7xzSbZ3JhiEH2wWcUwwawAPff9G2iFSFl6zk1hiDHY5s6k",
+	"j+J3qrS9X5IKNEiF00+zFiMFZfY0ymqpuLS5MfimkSAFbLApA07x1xpsA7rKY2drCmjHd6gV7kzBleBM",
+	"Ocx+ShLzJ+NMA7O5ESFKmlnn8RflcB7v8xHvHIYwz4m2B6iGytr+KGGPU/xDPG6auFsz8UCLkTlEStKE",
+	"qGR+8qv1Z51loJQ1VnVV2V4zJR8AQaUruiaFKTcegbpz7Amg6paGGu/4m+oDKugDsOlI28ywPlqYrsNB",
+	"6Y88b76r1qcqduSkbR2VXoDsOnzWVt/F562fQO3baKRX/Ejz1sFQgrZs8+t6a3/vQ/nYbG+fotGwgqyp",
+	"ZYyh9UgYu5HGAaRlDf8eeSpQihQ2UfhGKmFnleqquWJRnoAiwu+T968d2kAExjXa85rlz4vyj+G43zIO",
+	"35Fv902nGIKk7Sbx4pi9xv54MQWvEndvUJ8GXdQB0H1l9Wa4v/6MP5KMlzDjr7LBXB3X9ZjZSGKicE8L",
+	"vt4yKPh6ofy/4Js32/AS8cqCbxBmR4JvgPRpvTd5kwzput34+Hy6bizPeTk/9fNdum76uj0v8ZREAVnn",
+	"+3FrXyEygnffuMkc0n99yGvmvPs0oA+TbxCao3tALpb8nEt/4ZtB5xl1Om9fl2VzprE65PzCsbqb3xMU",
+	"blP4vPnqkW95oC4SbzJLn4f6xYu7VTy86CY5Je7WNUan7fxr3er2hsPkNTwHTWg5X77+h6q37plzCcNL",
+	"WBLDbKhtSP+tudbpxjXtaw+CfOi7q5YlTvFBa5HGcckzUh640ulNkvwcE0Hjh3e4vWv/CQAA//+jP886",
+	"dhkAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

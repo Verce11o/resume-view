@@ -11,6 +11,7 @@ import (
 type PositionRepository interface {
 	CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error)
 	GetPosition(ctx context.Context, id string) (models.Position, error)
+	GetPositionList(ctx context.Context, cursor string) (models.PositionList, error)
 	UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error)
 	DeletePosition(ctx context.Context, id string) error
 }
@@ -38,6 +39,14 @@ func (s *PositionService) GetPosition(ctx context.Context, id string) (models.Po
 		return models.Position{}, fmt.Errorf("get position: %w", err)
 	}
 	return position, nil
+}
+
+func (s *PositionService) GetPositionList(ctx context.Context, cursor string) (models.PositionList, error) {
+	positionList, err := s.repo.GetPositionList(ctx, cursor)
+	if err != nil {
+		return models.PositionList{}, fmt.Errorf("get position list: %w", err)
+	}
+	return positionList, nil
 }
 
 func (s *PositionService) UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error) {

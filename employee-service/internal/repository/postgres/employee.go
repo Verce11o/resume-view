@@ -2,12 +2,17 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
+
+var employeeLimit = 5
 
 type EmployeeRepository struct {
 	db *pgxpool.Pool
@@ -51,6 +56,44 @@ func (p *EmployeeRepository) GetEmployee(ctx context.Context, id string) (models
 	}
 
 	return employee, nil
+}
+
+func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error) {
+	var createdAt time.Time
+	var employeeID uuid.UUID
+	var err error
+
+	if cursor != "" {
+		createdAt, employeeID, err = pagination.DecodeCursor(cursor)
+		if err != nil {
+			return models.EmployeeList{}, err
+		}
+	}
+
+	q := "SELECT id, first_name, last_name, position_id, created_at, updated_at FROM employees WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3"
+
+	row, err := p.db.Query(ctx, q, createdAt, employeeID, employeeLimit)
+	if err != nil {
+		return models.EmployeeList{}, err
+	}
+
+	employeeList, err := pgx.CollectRows(row, pgx.RowToStructByName[models.Employee])
+
+	if err != nil {
+		return models.EmployeeList{}, err
+	}
+
+	var nextCursor string
+	if len(employeeList) > 0 {
+		lastEmployee := employeeList[len(employeeList)-1]
+		fmt.Println(lastEmployee.ID.String())
+		nextCursor = pagination.EncodeCursor(lastEmployee.CreatedAt, lastEmployee.ID.String())
+	}
+
+	return models.EmployeeList{
+		Cursor:    nextCursor,
+		Employees: employeeList,
+	}, nil
 }
 
 func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error) {

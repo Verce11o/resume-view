@@ -3,11 +3,15 @@ package postgres
 import (
 	"context"
 	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
+
+var positionLimit = 5
 
 type PositionRepository struct {
 	db *pgxpool.Pool
@@ -51,6 +55,43 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id string) (models
 	}
 
 	return position, nil
+}
+
+func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string) (models.PositionList, error) {
+	var createdAt time.Time
+	var positionID uuid.UUID
+	var err error
+
+	if cursor != "" {
+		createdAt, positionID, err = pagination.DecodeCursor(cursor)
+		if err != nil {
+			return models.PositionList{}, err
+		}
+	}
+
+	q := "SELECT id, name, salary, created_at, updated_at FROM positions WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3"
+
+	row, err := p.db.Query(ctx, q, createdAt, positionID, positionLimit)
+	if err != nil {
+		return models.PositionList{}, err
+	}
+
+	positionList, err := pgx.CollectRows(row, pgx.RowToStructByName[models.Position])
+
+	if err != nil {
+		return models.PositionList{}, err
+	}
+
+	var nextCursor string
+	if len(positionList) > 0 {
+		lastPosition := positionList[len(positionList)-1]
+		nextCursor = pagination.EncodeCursor(lastPosition.CreatedAt, lastPosition.ID.String())
+	}
+
+	return models.PositionList{
+		Cursor:    nextCursor,
+		Positions: positionList,
+	}, nil
 }
 
 func (p *PositionRepository) UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error) {

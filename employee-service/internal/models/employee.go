@@ -13,3 +13,8 @@ type Employee struct {
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }
+
+type EmployeeList struct {
+	Cursor    string     `json:"cursor"`
+	Employees []Employee `json:"employees"`
+}

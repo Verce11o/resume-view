@@ -31,6 +31,37 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateEmployee'
 
+    get:
+      operationId: GetEmployeeList
+      summary: Get employee list
+      description: Gets all employees
+
+      tags:
+        - employees
+
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor for next page.
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cursor:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Employee"
+
   /employee/{id}:
     get:
       summary: Get employee by id
@@ -159,6 +190,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Position'
+    get:
+      operationId: GetPositionList
+      summary: Get position list
+      description: Gets all positions
+
+      tags:
+        - position
+
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Pagination cursor for next page.
+
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cursor:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Position"
 
   /position/{id}:
     get:
