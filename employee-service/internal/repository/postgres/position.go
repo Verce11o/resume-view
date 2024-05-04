@@ -58,9 +58,11 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id string) (models
 }
 
 func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string) (models.PositionList, error) {
-	var createdAt time.Time
-	var positionID uuid.UUID
-	var err error
+	var (
+		createdAt  time.Time
+		positionID uuid.UUID
+		err        error
+	)
 
 	if cursor != "" {
 		createdAt, positionID, err = pagination.DecodeCursor(cursor)

@@ -15,7 +15,7 @@ type Config struct {
 	SSLMode  string
 }
 
-func Run(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
+func New(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	db, err := pgxpool.New(ctx, fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.SSLMode))
 

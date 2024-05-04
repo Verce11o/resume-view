@@ -6,11 +6,11 @@ import (
 )
 
 type Position struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	Name      string    `json:"name" db:"name"`
-	Salary    int       `json:"salary" db:"salary"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID        uuid.UUID `json:"id" db:"id" bson:"_id,omitempty"`
+	Name      string    `json:"name" db:"name" bson:"name,omitempty"`
+	Salary    int       `json:"salary" db:"salary" bson:"salary,omitempty"`
+	CreatedAt time.Time `json:"created_at" db:"created_at" bson:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at" bson:"updated_at,omitempty"`
 }
 
 type PositionList struct {
