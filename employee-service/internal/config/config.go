@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server       Server
 	Postgres     Postgres
+	MongoDB      MongoDB
 	MainDatabase string `env:"MAIN_DATABASE" envDefault:"postgres"`
 	LogLevel     string `env:"LOG_LEVEL" env-default:"INFO"`
 }
@@ -23,6 +24,15 @@ type Postgres struct {
 	Port     string `env:"POSTGRES_PORT" env-default:"5432"`
 	Name     string `env:"POSTGRES_DB" env-default:"employees"`
 	SSLMode  string `env:"POSTGRES_SSL_MODE" env-default:"disable"`
+}
+
+type MongoDB struct {
+	User       string `env:"MONGO_USER" env-default:""`
+	Password   string `env:"MONGO_PASSWORD" env-default:""`
+	Host       string `env:"MONGO_HOST" env-default:"localhost"`
+	Port       string `env:"MONGO_PORT" env-default:"27017"`
+	Name       string `env:"MONGO_DB" env-default:"employees"`
+	ReplicaSet string `env:"MONGO_REPLICA_SET" env-default:"rs0"`
 }
 
 func Load() Config {

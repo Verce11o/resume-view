@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/employee-service/internal/server"
+	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
 	"go.uber.org/zap"
 )
@@ -16,7 +17,7 @@ type App struct {
 
 func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, error) {
 
-	db, err := postgresLib.Run(ctx, postgresLib.Config{
+	db, err := postgresLib.New(ctx, postgresLib.Config{
 		User:     cfg.Postgres.User,
 		Password: cfg.Postgres.Password,
 		Host:     cfg.Postgres.Host,
@@ -28,7 +29,20 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		return nil, err
 	}
 
-	srv := server.NewServer(log, db, cfg)
+	mongo, err := mongoLib.New(ctx, mongoLib.Config{
+		Host:       cfg.MongoDB.Host,
+		Port:       cfg.MongoDB.Port,
+		User:       cfg.MongoDB.User,
+		Password:   cfg.MongoDB.Password,
+		Database:   cfg.MongoDB.Name,
+		ReplicaSet: cfg.MongoDB.ReplicaSet,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	srv := server.NewServer(log, db, mongo.Database("employees"), cfg)
 
 	return &App{
 		cfg: cfg,

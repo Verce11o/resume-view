@@ -28,7 +28,7 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 		return nil, err
 	}
 
-	db, err := postgresLib.Run(ctx, postgresLib.Config{
+	db, err := postgresLib.New(ctx, postgresLib.Config{
 		User:     cfg.DB.User,
 		Password: cfg.DB.Password,
 		Host:     cfg.DB.Host,
