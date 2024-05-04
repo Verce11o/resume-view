@@ -45,6 +45,7 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 
 	employee, err := h.employeeService.CreateEmployee(c.Request.Context(), input)
 	if err != nil {
+		h.log.Errorf("error creating employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -55,6 +56,7 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 func (h *Handler) GetEmployeeByID(c *gin.Context, id string) {
 	employee, err := h.employeeService.GetEmployee(c.Request.Context(), id)
 	if err != nil {
+		h.log.Errorf("error getting employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -68,6 +70,7 @@ func (h *Handler) GetEmployeeList(c *gin.Context, params api.GetEmployeeListPara
 	}
 	employee, err := h.employeeService.GetEmployeeList(c.Request.Context(), cursor)
 	if err != nil {
+		h.log.Errorf("error getting employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -84,6 +87,7 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 
 	employee, err := h.employeeService.UpdateEmployee(c.Request.Context(), id, input)
 	if err != nil {
+		h.log.Errorf("error updating employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -94,6 +98,7 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 func (h *Handler) DeleteEmployeeByID(c *gin.Context, id string) {
 	err := h.employeeService.DeleteEmployee(c.Request.Context(), id)
 	if err != nil {
+		h.log.Errorf("error deleting employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -105,12 +110,14 @@ func (h *Handler) CreatePosition(c *gin.Context) {
 	var input api.CreatePosition
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		h.log.Errorf("error parsing position: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
 	position, err := h.positionService.CreatePosition(c.Request.Context(), input)
 	if err != nil {
+		h.log.Errorf("error creating position: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -121,6 +128,7 @@ func (h *Handler) CreatePosition(c *gin.Context) {
 func (h *Handler) GetPositionByID(c *gin.Context, id string) {
 	position, err := h.positionService.GetPosition(c.Request.Context(), id)
 	if err != nil {
+		h.log.Errorf("error getting position: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -145,12 +153,14 @@ func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {
 	var input api.UpdatePosition
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		h.log.Errorf("error parsing position: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
 	position, err := h.positionService.UpdatePosition(c.Request.Context(), id, input)
 	if err != nil {
+		h.log.Errorf("error updating position: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -161,6 +171,7 @@ func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {
 func (h *Handler) DeletePositionByID(c *gin.Context, id string) {
 	err := h.positionService.DeletePosition(c.Request.Context(), id)
 	if err != nil {
+		h.log.Errorf("error deleting position: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}

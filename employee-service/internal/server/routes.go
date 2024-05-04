@@ -6,12 +6,14 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/employee-service/internal/handler"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/mongodb"
+	"github.com/Verce11o/resume-view/employee-service/internal/repository/postgres"
 	"github.com/Verce11o/resume-view/employee-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -42,13 +44,18 @@ func (s *Server) InitRoutes() *gin.Engine {
 
 	router := gin.New()
 
-	//positionRepo := postgres.NewPositionRepository(s.db)
+	var positionRepo service.PositionRepository
+	var employeeRepo service.EmployeeRepository
 
-	positionRepo := mongodb.NewPositionRepository(s.mongo)
+	positionRepo = postgres.NewPositionRepository(s.db)
+	employeeRepo = postgres.NewEmployeeRepository(s.db)
+
+	if strings.ToLower(s.cfg.MainDatabase) == "mongo" {
+		positionRepo = mongodb.NewPositionRepository(s.mongo)
+		employeeRepo = mongodb.NewEmployeeRepository(s.mongo)
+	}
+
 	positionService := service.NewPositionService(s.log, positionRepo)
-
-	//employeeRepo := postgres.NewEmployeeRepository(s.db)
-	employeeRepo := mongodb.NewEmployeeRepository(s.mongo)
 
 	employeeService := service.NewEmployeeService(s.log, employeeRepo)
 
