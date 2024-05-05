@@ -9,8 +9,9 @@ type Config struct {
 	Server       Server
 	Postgres     Postgres
 	MongoDB      MongoDB
+	Redis        Redis
 	MainDatabase string `env:"MAIN_DATABASE" envDefault:"postgres"`
-	LogLevel     string `env:"LOG_LEVEL" env-default:"INFO"`
+	LogLevel     string `env:"LOG_LEVEL" env-default:"DEBUG"`
 }
 
 type Server struct {
@@ -33,6 +34,13 @@ type MongoDB struct {
 	Port       string `env:"MONGO_PORT" env-default:"27017"`
 	Name       string `env:"MONGO_DB" env-default:"employees"`
 	ReplicaSet string `env:"MONGO_REPLICA_SET" env-default:"rs0"`
+}
+
+type Redis struct {
+	Host     string `env:"REDIS_HOST" env-default:"localhost"`
+	Port     string `env:"REDIS_PORT" env-default:"6379"`
+	Password string `env:"REDIS_PASSWORD" env-default:""`
+	Database int    `env:"REDIS_DB" env-default:"0"`
 }
 
 func Load() Config {

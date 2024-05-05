@@ -16,13 +16,20 @@ type EmployeeRepository interface {
 	DeleteEmployee(ctx context.Context, id string) error
 }
 
-type EmployeeService struct {
-	log  *zap.SugaredLogger
-	repo EmployeeRepository
+type EmployeeCacheRepository interface {
+	GetEmployee(ctx context.Context, key string) (*models.Employee, error)
+	SetEmployee(ctx context.Context, employeeID string, employee *models.Employee) error
+	DeleteEmployee(ctx context.Context, employeeID string) error
 }
 
-func NewEmployeeService(log *zap.SugaredLogger, repo EmployeeRepository) *EmployeeService {
-	return &EmployeeService{log: log, repo: repo}
+type EmployeeService struct {
+	log   *zap.SugaredLogger
+	repo  EmployeeRepository
+	cache EmployeeCacheRepository
+}
+
+func NewEmployeeService(log *zap.SugaredLogger, repo EmployeeRepository, cache EmployeeCacheRepository) *EmployeeService {
+	return &EmployeeService{log: log, repo: repo, cache: cache}
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error) {
@@ -34,10 +41,26 @@ func (s *EmployeeService) CreateEmployee(ctx context.Context, request api.Create
 }
 
 func (s *EmployeeService) GetEmployee(ctx context.Context, id string) (models.Employee, error) {
+	cachedEmployee, err := s.cache.GetEmployee(ctx, id)
+
+	if err != nil {
+		s.log.Errorf("get employee from cache: %s", err)
+	}
+
+	if cachedEmployee != nil {
+		s.log.Debugf("returned from cache: %s", cachedEmployee)
+		return *cachedEmployee, nil
+	}
+
 	employee, err := s.repo.GetEmployee(ctx, id)
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("get employee: %w", err)
 	}
+
+	if err = s.cache.SetEmployee(ctx, id, &employee); err != nil {
+		s.log.Errorf("set employee to cache: %s", err)
+	}
+
 	return employee, nil
 }
 
@@ -54,13 +77,29 @@ func (s *EmployeeService) UpdateEmployee(ctx context.Context, id string, request
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("update employee: %w", err)
 	}
+
+	if err = s.cache.DeleteEmployee(ctx, employee.ID.String()); err != nil {
+		s.log.Errorf("delete employee from cache: %s", err)
+	}
+
 	return employee, nil
 }
 
 func (s *EmployeeService) DeleteEmployee(ctx context.Context, id string) error {
-	err := s.repo.DeleteEmployee(ctx, id)
+
+	employee, err := s.repo.GetEmployee(ctx, id)
+	if err != nil {
+		return fmt.Errorf("get employee: %w", err)
+	}
+
+	err = s.repo.DeleteEmployee(ctx, employee.ID.String())
 	if err != nil {
 		return fmt.Errorf("delete employee: %w", err)
 	}
+
+	if err := s.cache.DeleteEmployee(ctx, employee.ID.String()); err != nil {
+		s.log.Errorf("delete employee from cache: %s", err)
+	}
+
 	return nil
 }

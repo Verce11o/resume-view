@@ -6,6 +6,7 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/server"
 	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
+	redisLib "github.com/Verce11o/resume-view/shared/db/redis"
 	"go.uber.org/zap"
 )
 
@@ -42,7 +43,18 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		return nil, err
 	}
 
-	srv := server.NewServer(log, db, mongo.Database("employees"), cfg)
+	redis, err := redisLib.New(ctx, redisLib.Config{
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		Database: cfg.Redis.Database,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	srv := server.NewServer(log, db, mongo.Database("employees"), redis, cfg)
 
 	return &App{
 		cfg: cfg,
