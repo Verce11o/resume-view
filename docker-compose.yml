@@ -66,6 +66,9 @@ services:
       - "MONGO_DB=employees"
       - "MONGO_REPLICA_SET=rs0"
 
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6379"
+
       - "MAIN_DATABASE=postgres"
       - "LOG_LEVEL=INFO"
       - "SERVER_PORT=:3009"
@@ -134,6 +137,18 @@ services:
     networks:
       - backend-network
 
+  redis:
+    image: redis:latest
+    container_name: resume-view_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data
+    networks:
+      - backend-network
+
+
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     environment:
@@ -150,6 +165,7 @@ volumes:
   pgdata:
   mongo_data:
   mongo_config:
+  redis:
   migrations:
     driver: local
     driver_opts:

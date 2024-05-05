@@ -16,13 +16,20 @@ type PositionRepository interface {
 	DeletePosition(ctx context.Context, id string) error
 }
 
-type PositionService struct {
-	log  *zap.SugaredLogger
-	repo PositionRepository
+type PositionCacheRepository interface {
+	GetPosition(ctx context.Context, key string) (*models.Position, error)
+	SetPosition(ctx context.Context, positionID string, position *models.Position) error
+	DeletePosition(ctx context.Context, positionID string) error
 }
 
-func NewPositionService(log *zap.SugaredLogger, repo PositionRepository) *PositionService {
-	return &PositionService{log: log, repo: repo}
+type PositionService struct {
+	log   *zap.SugaredLogger
+	repo  PositionRepository
+	cache PositionCacheRepository
+}
+
+func NewPositionService(log *zap.SugaredLogger, repo PositionRepository, cache PositionCacheRepository) *PositionService {
+	return &PositionService{log: log, repo: repo, cache: cache}
 }
 
 func (s *PositionService) CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error) {
@@ -34,10 +41,26 @@ func (s *PositionService) CreatePosition(ctx context.Context, request api.Create
 }
 
 func (s *PositionService) GetPosition(ctx context.Context, id string) (models.Position, error) {
+	cachedPosition, err := s.cache.GetPosition(ctx, id)
+
+	if err != nil {
+		s.log.Errorf("get position from cache: %s", err)
+	}
+
+	if cachedPosition != nil {
+		s.log.Debugf("returned from cache: %s", cachedPosition)
+		return *cachedPosition, nil
+	}
+
 	position, err := s.repo.GetPosition(ctx, id)
 	if err != nil {
 		return models.Position{}, fmt.Errorf("get position: %w", err)
 	}
+
+	if err = s.cache.SetPosition(ctx, id, &position); err != nil {
+		s.log.Errorf("set position to cache: %s", err)
+	}
+
 	return position, nil
 }
 
@@ -54,13 +77,27 @@ func (s *PositionService) UpdatePosition(ctx context.Context, id string, request
 	if err != nil {
 		return models.Position{}, fmt.Errorf("update position: %w", err)
 	}
+
+	if err = s.cache.DeletePosition(ctx, position.ID.String()); err != nil {
+		s.log.Errorf("delete position from cache: %s", err)
+	}
+
 	return position, nil
 }
 
 func (s *PositionService) DeletePosition(ctx context.Context, id string) error {
-	err := s.repo.DeletePosition(ctx, id)
+	position, err := s.repo.GetPosition(ctx, id)
+	if err != nil {
+		return fmt.Errorf("get position: %w", err)
+	}
+
+	err = s.repo.DeletePosition(ctx, position.ID.String())
 	if err != nil {
 		return fmt.Errorf("delete position: %w", err)
+	}
+
+	if err := s.cache.DeletePosition(ctx, position.ID.String()); err != nil {
+		s.log.Errorf("delete position from cache: %s", err)
 	}
 	return nil
 }
