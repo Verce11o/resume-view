@@ -24,11 +24,10 @@ func NewPositionRepository(db *mongo.Database) *PositionRepository {
 	return &PositionRepository{db: db, coll: db.Collection("positions")}
 }
 
-func (p *PositionRepository) CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error) {
-	id := uuid.New()
+func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error) {
 
 	_, err := p.coll.InsertOne(ctx, &models.Position{
-		ID:        id,
+		ID:        positionID,
 		Name:      request.Name,
 		Salary:    request.Salary,
 		CreatedAt: time.Now().UTC(),
@@ -41,7 +40,7 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, request api.Cre
 
 	var position models.Position
 	err = p.coll.FindOne(ctx, bson.M{
-		"_id": id,
+		"_id": positionID,
 	}).Decode(&position)
 
 	if err != nil {
@@ -51,16 +50,11 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, request api.Cre
 	return position, nil
 }
 
-func (p *PositionRepository) GetPosition(ctx context.Context, id string) (models.Position, error) {
+func (p *PositionRepository) GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error) {
 	var position models.Position
 
-	objectID, err := uuid.Parse(id)
-	if err != nil {
-		return models.Position{}, err
-	}
-
-	err = p.coll.FindOne(ctx, bson.M{
-		"_id": objectID,
+	err := p.coll.FindOne(ctx, bson.M{
+		"_id": id,
 	}).Decode(&position)
 
 	if err != nil {
@@ -131,16 +125,11 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *PositionRepository) UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error) {
+func (p *PositionRepository) UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error) {
 
-	objectID, err := uuid.Parse(id)
-	if err != nil {
-		return models.Position{}, err
-	}
-
-	filter := bson.D{{Key: "_id", Value: objectID}}
+	filter := bson.D{{Key: "_id", Value: id}}
 	update := bson.D{{Key: "$set", Value: models.Position{
-		ID:        objectID,
+		ID:        id,
 		Name:      request.Name,
 		Salary:    request.Salary,
 		UpdatedAt: time.Now().UTC(),
@@ -161,14 +150,9 @@ func (p *PositionRepository) UpdatePosition(ctx context.Context, id string, requ
 	return result, nil
 }
 
-func (p *PositionRepository) DeletePosition(ctx context.Context, id string) error {
-	objectID, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
-
+func (p *PositionRepository) DeletePosition(ctx context.Context, id uuid.UUID) error {
 	res, err := p.coll.DeleteOne(ctx, bson.M{
-		"_id": objectID,
+		"_id": id,
 	})
 
 	if err != nil {

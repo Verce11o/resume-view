@@ -21,11 +21,10 @@ func NewPositionRepository(db *pgxpool.Pool) *PositionRepository {
 	return &PositionRepository{db: db}
 }
 
-func (p *PositionRepository) CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error) {
+func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error) {
 
-	id := uuid.New()
 	q := "INSERT INTO positions(id, name, salary) VALUES ($1, $2, $3) RETURNING id, name, salary, created_at, updated_at"
-	row, err := p.db.Query(ctx, q, id, request.Name, request.Salary)
+	row, err := p.db.Query(ctx, q, positionID, request.Name, request.Salary)
 
 	if err != nil {
 		return models.Position{}, err
@@ -40,7 +39,7 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, request api.Cre
 	return position, nil
 }
 
-func (p *PositionRepository) GetPosition(ctx context.Context, id string) (models.Position, error) {
+func (p *PositionRepository) GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error) {
 	q := "SELECT id, name, salary, created_at, updated_at FROM positions WHERE id = $1"
 
 	row, err := p.db.Query(ctx, q, id)
@@ -96,7 +95,7 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *PositionRepository) UpdatePosition(ctx context.Context, id string, request api.UpdatePosition) (models.Position, error) {
+func (p *PositionRepository) UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error) {
 	q := `UPDATE positions SET name = COALESCE(NULLIF($2, ''), name), 
                      		   salary = COALESCE(NULLIF($3, 0), salary), updated_at = NOW()
                  WHERE id = $1 RETURNING id, name, salary, created_at, updated_at`
@@ -115,7 +114,7 @@ func (p *PositionRepository) UpdatePosition(ctx context.Context, id string, requ
 	return position, nil
 }
 
-func (p *PositionRepository) DeletePosition(ctx context.Context, id string) error {
+func (p *PositionRepository) DeletePosition(ctx context.Context, id uuid.UUID) error {
 
 	q := "DELETE FROM positions WHERE id = $1"
 	rows, err := p.db.Exec(ctx, q, id)
