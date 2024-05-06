@@ -22,7 +22,7 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 	return &EmployeeRepository{db: db}
 }
 
-func (p *EmployeeRepository) CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error) {
+func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return models.Employee{}, err
@@ -30,16 +30,12 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, request api.Cre
 
 	defer tx.Rollback(ctx)
 
-	positionID := uuid.New()
-
 	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
 
 	_, err = tx.Exec(ctx, createPositionQuery, positionID, request.PositionName, request.Salary)
 	if err != nil {
 		return models.Employee{}, err
 	}
-
-	employeeID := uuid.New()
 
 	createEmployeeQuery := "INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) RETURNING id, first_name, last_name, position_id,  created_at, updated_at"
 
@@ -58,7 +54,7 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, request api.Cre
 	return employee, tx.Commit(ctx)
 }
 
-func (p *EmployeeRepository) GetEmployee(ctx context.Context, id string) (models.Employee, error) {
+func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error) {
 	q := "SELECT id, first_name, last_name, position_id, created_at, updated_at FROM employees WHERE id = $1"
 
 	row, err := p.db.Query(ctx, q, id)
@@ -113,7 +109,7 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error) {
+func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error) {
 	q := `UPDATE employees SET first_name = COALESCE(NULLIF($2, ''), first_name), 
                      last_name = COALESCE(NULLIF($3, ''), last_name), 
                      position_id =  $4 , updated_at = NOW()
@@ -133,7 +129,7 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id string, requ
 	return employee, nil
 }
 
-func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id string) error {
+func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
 
 	q := "DELETE FROM employees WHERE id = $1"
 	rows, err := p.db.Exec(ctx, q, id)

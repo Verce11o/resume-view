@@ -24,11 +24,9 @@ func NewEmployeeRepository(db *mongo.Database) *EmployeeRepository {
 	return &EmployeeRepository{db: db, coll: db.Collection("employees")}
 }
 
-func (p *EmployeeRepository) CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error) {
+func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error) {
 
 	positionColl := p.db.Collection("positions")
-	positionID := uuid.New()
-	employeeID := uuid.New()
 
 	callback := func(sess mongo.SessionContext) (interface{}, error) { //nolint:contextcheck
 
@@ -85,16 +83,11 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, request api.Cre
 	return employee, nil
 }
 
-func (p *EmployeeRepository) GetEmployee(ctx context.Context, id string) (models.Employee, error) {
+func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error) {
 	var employee models.Employee
 
-	objectID, err := uuid.Parse(id)
-	if err != nil {
-		return models.Employee{}, err
-	}
-
-	err = p.coll.FindOne(ctx, bson.M{
-		"_id": objectID,
+	err := p.coll.FindOne(ctx, bson.M{
+		"_id": id,
 	}).Decode(&employee)
 
 	if err != nil {
@@ -162,11 +155,7 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error) {
-	objectID, err := uuid.Parse(id)
-	if err != nil {
-		return models.Employee{}, err
-	}
+func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error) {
 
 	positionID, err := uuid.Parse(request.PositionId)
 	if err != nil {
@@ -183,9 +172,9 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id string, requ
 		return models.Employee{}, err
 	}
 
-	filter := bson.D{{Key: "_id", Value: objectID}}
+	filter := bson.D{{Key: "_id", Value: id}}
 	update := bson.D{{Key: "$set", Value: models.Employee{
-		ID:         objectID,
+		ID:         id,
 		FirstName:  request.FirstName,
 		LastName:   request.LastName,
 		PositionID: positionID,
@@ -207,15 +196,10 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id string, requ
 	return result, nil
 }
 
-func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id string) error {
-
-	objectID, err := uuid.Parse(id)
-	if err != nil {
-		return err
-	}
+func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
 
 	res, err := p.coll.DeleteOne(ctx, bson.M{
-		"_id": objectID,
+		"_id": id,
 	})
 
 	if err != nil {

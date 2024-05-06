@@ -19,11 +19,11 @@ type PositionService interface {
 }
 
 type EmployeeService interface {
-	CreateEmployee(ctx context.Context, request api.CreateEmployee) (models.Employee, error)
-	GetEmployee(ctx context.Context, id string) (models.Employee, error)
+	CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error)
+	GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error)
 	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
-	UpdateEmployee(ctx context.Context, id string, request api.UpdateEmployee) (models.Employee, error)
-	DeleteEmployee(ctx context.Context, id string) error
+	UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error)
+	DeleteEmployee(ctx context.Context, id uuid.UUID) error
 }
 
 type Handler struct {
@@ -37,6 +37,7 @@ func NewHandler(log *zap.SugaredLogger, positionService PositionService, employe
 }
 
 func (h *Handler) CreateEmployee(c *gin.Context) {
+
 	var input api.CreateEmployee
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -44,7 +45,7 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 		return
 	}
 
-	employee, err := h.employeeService.CreateEmployee(c.Request.Context(), input)
+	employee, err := h.employeeService.CreateEmployee(c.Request.Context(), uuid.New(), uuid.New(), input)
 	if err != nil {
 		h.log.Errorf("error creating employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -55,7 +56,13 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 }
 
 func (h *Handler) GetEmployeeByID(c *gin.Context, id string) {
-	employee, err := h.employeeService.GetEmployee(c.Request.Context(), id)
+	employeeID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	employee, err := h.employeeService.GetEmployee(c.Request.Context(), employeeID)
 	if err != nil {
 		h.log.Errorf("error getting employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -79,6 +86,12 @@ func (h *Handler) GetEmployeeList(c *gin.Context, params api.GetEmployeeListPara
 }
 
 func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
+	employeeID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
 	var input api.UpdateEmployee
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -86,7 +99,7 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 		return
 	}
 
-	employee, err := h.employeeService.UpdateEmployee(c.Request.Context(), id, input)
+	employee, err := h.employeeService.UpdateEmployee(c.Request.Context(), employeeID, input)
 	if err != nil {
 		h.log.Errorf("error updating employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -97,7 +110,13 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 }
 
 func (h *Handler) DeleteEmployeeByID(c *gin.Context, id string) {
-	err := h.employeeService.DeleteEmployee(c.Request.Context(), id)
+	employeeID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	err = h.employeeService.DeleteEmployee(c.Request.Context(), employeeID)
 	if err != nil {
 		h.log.Errorf("error deleting employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
