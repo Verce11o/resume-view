@@ -219,7 +219,7 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 				assert.Error(t, err)
 			}
 			assert.Equal(t, len(resp.Positions), tt.length)
-
+			nextCursor = resp.Cursor
 		})
 	}
 }
