@@ -76,6 +76,8 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			_, err := repo.CreateEmployee(ctx, tt.employeeID, tt.positionID, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -125,6 +127,8 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 			_, err := repo.GetEmployee(ctx, tt.employeeID)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -174,9 +178,10 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 			length: 5,
 		},
 		{
-			name:   "Invalid cursor",
-			cursor: "invalid",
-			length: 0,
+			name:    "Invalid cursor",
+			cursor:  "invalid",
+			length:  0,
+			wantErr: true,
 		},
 	}
 
@@ -185,6 +190,8 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 			resp, err := repo.GetEmployeeList(ctx, tt.cursor)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 			assert.Equal(t, len(resp.Employees), tt.length)
 			nextCursor = resp.Cursor
@@ -247,6 +254,8 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 			_, err := repo.UpdateEmployee(ctx, tt.employeeID, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -293,6 +302,8 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 			err := repo.DeleteEmployee(ctx, tt.employeeID)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
