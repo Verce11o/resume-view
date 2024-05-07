@@ -28,7 +28,7 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid
 		return models.Employee{}, err
 	}
 
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint:errcheck
 
 	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
 

@@ -48,7 +48,12 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -97,7 +102,12 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -148,7 +158,12 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -209,7 +224,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -269,7 +289,12 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 

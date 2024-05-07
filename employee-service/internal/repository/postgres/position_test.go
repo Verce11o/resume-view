@@ -63,7 +63,12 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -134,7 +139,12 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -178,7 +188,12 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -239,7 +254,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -289,10 +309,15 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 }
 
 func TestPositionRepository_DeletePosition(t *testing.T) {
-	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(context.Background())
-
 	ctx := context.Background()
+
+	container, connURI := setupPostgresContainer(t)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
