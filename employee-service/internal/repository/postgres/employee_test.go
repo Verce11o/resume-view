@@ -187,7 +187,7 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 				assert.Error(t, err)
 			}
 			assert.Equal(t, len(resp.Employees), tt.length)
-
+			nextCursor = resp.Cursor
 		})
 	}
 }
