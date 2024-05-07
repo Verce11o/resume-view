@@ -7,6 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	redisContainer "github.com/testcontainers/testcontainers-go/modules/redis"
 	"testing"
 	"time"
 )
@@ -16,7 +17,12 @@ func TestEmployeeCache_SetEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,
@@ -65,7 +71,12 @@ func TestEmployeeCache_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,
@@ -117,7 +128,12 @@ func TestEmployeeCache_DeleteEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,

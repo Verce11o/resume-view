@@ -37,7 +37,12 @@ func TestPositionCache_SetPosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,
@@ -85,7 +90,12 @@ func TestPositionCache_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,
@@ -137,7 +147,12 @@ func TestPositionCache_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,

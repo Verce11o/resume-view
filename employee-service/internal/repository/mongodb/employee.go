@@ -114,7 +114,7 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 
 	filter := bson.D{
 		{
-			"$or", bson.A{
+			Key: "$or", Value: bson.A{
 				bson.M{
 					"created_at": bson.M{"$gt": createdAt},
 				},

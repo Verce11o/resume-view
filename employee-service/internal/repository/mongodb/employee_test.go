@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"testing"
@@ -16,7 +17,12 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -88,7 +94,12 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -144,7 +155,12 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -209,7 +225,12 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 
@@ -276,7 +297,12 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupMongoDBContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
 

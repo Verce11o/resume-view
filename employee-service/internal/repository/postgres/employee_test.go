@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"testing"
 )
 
@@ -17,7 +18,12 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -88,7 +94,12 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -138,7 +149,12 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -203,7 +219,12 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -262,10 +283,15 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 }
 
 func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
-	container, connURI := setupPostgresContainer(t)
-	defer container.Terminate(context.Background())
-
 	ctx := context.Background()
+
+	container, connURI := setupPostgresContainer(t)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
