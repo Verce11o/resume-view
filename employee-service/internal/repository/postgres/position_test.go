@@ -95,22 +95,25 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Empty name",
+			name:       "Empty name",
+			positionID: uuid.New(),
 			request: api.CreatePosition{
 				Name:   "",
 				Salary: 30999,
 			},
 		},
 		{
-			name: "Empty salary",
+			name:       "Empty salary",
+			positionID: uuid.New(),
 			request: api.CreatePosition{
 				Name:   "Python Developer",
 				Salary: 0,
 			},
 		},
 		{
-			name:    "Empty request",
-			request: api.CreatePosition{},
+			name:       "Empty position_id",
+			positionID: uuid.Nil,
+			request:    api.CreatePosition{},
 		},
 	}
 
@@ -119,6 +122,8 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 			_, err := repo.CreatePosition(ctx, tt.positionID, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -162,6 +167,8 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 			_, err := repo.GetPosition(ctx, tt.positionID)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -206,9 +213,10 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 			length: 5,
 		},
 		{
-			name:   "Invalid cursor",
-			cursor: "invalid",
-			length: 0,
+			name:    "Invalid cursor",
+			cursor:  "invalid",
+			length:  0,
+			wantErr: true,
 		},
 	}
 
@@ -217,7 +225,10 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 			resp, err := repo.GetPositionList(ctx, tt.cursor)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, len(resp.Positions), tt.length)
 			nextCursor = resp.Cursor
 		})
@@ -270,6 +281,8 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 			_, err := repo.UpdatePosition(ctx, tt.positionID, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -311,6 +324,8 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 			err := repo.DeletePosition(ctx, tt.positionID)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
