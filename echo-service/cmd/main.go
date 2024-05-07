@@ -25,7 +25,7 @@ func main() {
 	client, err := grpc.NewViewServiceClient(ctx, logger, cfg)
 
 	if err != nil {
-		slog.Error("Error creating new view client: %v", err)
+		slog.Error("Error creating new view client: %v", err.Error())
 	}
 
 	ticker := time.NewTicker(5 * time.Second)
