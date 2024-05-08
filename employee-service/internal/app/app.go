@@ -7,7 +7,13 @@ import (
 	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
 	redisLib "github.com/Verce11o/resume-view/shared/db/redis"
+	"github.com/jackc/pgx/v5/pgxpool"
+	mongoDriver "go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
 type App struct {
@@ -17,27 +23,31 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, error) {
+	var db *pgxpool.Pool
+	var mongo *mongoDriver.Client
+	var err error
 
-	db, err := postgresLib.New(ctx, postgresLib.Config{
-		User:     cfg.Postgres.User,
-		Password: cfg.Postgres.Password,
-		Host:     cfg.Postgres.Host,
-		Port:     cfg.Postgres.Port,
-		Database: cfg.Postgres.Name,
-		SSLMode:  cfg.Postgres.SSLMode,
-	})
-	if err != nil {
-		return nil, err
+	if strings.ToLower(cfg.MainDatabase) == "postgres" {
+		db, err = postgresLib.New(ctx, postgresLib.Config{
+			User:     cfg.Postgres.User,
+			Password: cfg.Postgres.Password,
+			Host:     cfg.Postgres.Host,
+			Port:     cfg.Postgres.Port,
+			Database: cfg.Postgres.Name,
+			SSLMode:  cfg.Postgres.SSLMode,
+		})
 	}
 
-	mongo, err := mongoLib.New(ctx, mongoLib.Config{
-		Host:       cfg.MongoDB.Host,
-		Port:       cfg.MongoDB.Port,
-		User:       cfg.MongoDB.User,
-		Password:   cfg.MongoDB.Password,
-		Database:   cfg.MongoDB.Name,
-		ReplicaSet: cfg.MongoDB.ReplicaSet,
-	})
+	if strings.ToLower(cfg.MainDatabase) == "mongo" {
+		mongo, err = mongoLib.New(ctx, mongoLib.Config{
+			Host:       cfg.MongoDB.Host,
+			Port:       cfg.MongoDB.Port,
+			User:       cfg.MongoDB.User,
+			Password:   cfg.MongoDB.Password,
+			Database:   cfg.MongoDB.Name,
+			ReplicaSet: cfg.MongoDB.ReplicaSet,
+		})
+	}
 
 	if err != nil {
 		return nil, err
@@ -71,6 +81,12 @@ func (a *App) Run() error {
 		return err
 	}
 	return nil
+}
+
+func (a *App) Wait() {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
 }
 
 func (a *App) Stop(ctx context.Context) error {

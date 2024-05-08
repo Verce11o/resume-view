@@ -5,9 +5,6 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/app"
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/shared/logger"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func main() {
@@ -29,9 +26,7 @@ func main() {
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	application.Wait()
 
 	if err := application.Stop(ctx); err != nil {
 		log.Errorf("Failed to stop application: %v", err)

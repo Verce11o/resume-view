@@ -21,6 +21,28 @@ linters:
     - prealloc
     - predeclared
     - reassign
+    - whitespace
+    - bodyclose
+    - errname
+    - gci
+    - gocritic
+    - gofmt
+    - goimports
+    - gosec
+    - importas
+    - interfacebloat
+    - lll
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - nosprintfhostport
+    - protogetter
+    - rowserrcheck
+    - sqlclosecheck
+    - stylecheck
+    - revive
+    - wrapcheck
 
 issues:
   exclude:
