@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -87,7 +88,6 @@ func (s *EmployeeService) UpdateEmployee(ctx context.Context, id uuid.UUID, requ
 }
 
 func (s *EmployeeService) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
-
 	employee, err := s.repo.GetEmployee(ctx, id)
 	if err != nil {
 		return fmt.Errorf("get employee: %w", err)

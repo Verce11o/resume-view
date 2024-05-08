@@ -2,6 +2,10 @@ package server
 
 import (
 	"context"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/employee-service/internal/handler"
@@ -14,9 +18,6 @@ import (
 	rdb "github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type Server struct {
@@ -44,7 +45,6 @@ func (s *Server) Run(handler http.Handler) error {
 }
 
 func (s *Server) InitRoutes() *gin.Engine {
-
 	router := gin.New()
 
 	var positionRepo service.PositionRepository

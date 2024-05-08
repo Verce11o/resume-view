@@ -3,15 +3,16 @@ package pagination
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func DecodeCursor(encodedCursor string) (time.Time, uuid.UUID, error) {
 	byt, err := base64.StdEncoding.DecodeString(encodedCursor)
 	if err != nil {
-		return time.Time{}, uuid.Nil, err
+		return time.Time{}, uuid.Nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
 
 	arrStr := strings.Split(string(byt), ",")
@@ -34,5 +35,6 @@ func DecodeCursor(encodedCursor string) (time.Time, uuid.UUID, error) {
 
 func EncodeCursor(t time.Time, uuid string) string {
 	key := fmt.Sprintf("%s,%s", t.Format(time.RFC3339Nano), uuid)
+
 	return base64.StdEncoding.EncodeToString([]byte(key))
 }

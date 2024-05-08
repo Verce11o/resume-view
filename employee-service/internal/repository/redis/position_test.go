@@ -2,6 +2,9 @@ package redis
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -10,8 +13,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	redisContainer "github.com/testcontainers/testcontainers-go/modules/redis"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"testing"
-	"time"
 )
 
 func setupRedisContainer(t *testing.T) (*redisContainer.RedisContainer, string) {
@@ -33,7 +34,6 @@ func setupRedisContainer(t *testing.T) (*redisContainer.RedisContainer, string) 
 }
 
 func TestPositionCache_SetPosition(t *testing.T) {
-
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)

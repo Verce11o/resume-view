@@ -2,6 +2,8 @@ package mongodb
 
 import (
 	"context"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
@@ -10,10 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"time"
 )
 
-var employeeLimit = 5
+const employeeLimit = 5
 
 type EmployeeRepository struct {
 	db   *mongo.Database
@@ -25,11 +26,9 @@ func NewEmployeeRepository(db *mongo.Database) *EmployeeRepository {
 }
 
 func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error) {
-
 	positionColl := p.db.Collection("positions")
 
 	callback := func(sess mongo.SessionContext) (interface{}, error) { //nolint:contextcheck
-
 		if _, err := positionColl.InsertOne(sess, models.Position{ //nolint:contextcheck
 			ID:        positionID,
 			Name:      request.PositionName,
@@ -52,7 +51,6 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid
 		}
 
 		return nil, nil
-
 	}
 
 	wc := writeconcern.Majority()
@@ -68,7 +66,6 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid
 	_, err = session.WithTransaction(ctx, callback, txnOptions)
 	if err != nil {
 		return models.Employee{}, err
-
 	}
 
 	var employee models.Employee
@@ -109,7 +106,6 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 		if err != nil {
 			return models.EmployeeList{}, err
 		}
-
 	}
 
 	filter := bson.D{
@@ -156,7 +152,6 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 }
 
 func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error) {
-
 	positionID, err := uuid.Parse(request.PositionId)
 	if err != nil {
 		return models.Employee{}, err
@@ -197,7 +192,6 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, r
 }
 
 func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
-
 	res, err := p.coll.DeleteOne(ctx, bson.M{
 		"_id": id,
 	})

@@ -2,6 +2,9 @@ package mongodb
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -9,8 +12,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"testing"
-	"time"
 )
 
 func TestEmployeeRepository_CreateEmployee(t *testing.T) {
@@ -87,7 +88,6 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestEmployeeRepository_GetEmployee(t *testing.T) {
@@ -290,7 +290,6 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
