@@ -3,6 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	_ "github.com/flashlabs/rootpath"
 	"github.com/golang-migrate/migrate/v4"
@@ -15,8 +18,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"testing"
-	"time"
 )
 
 func runMigrations(t *testing.T, connURI string) {
@@ -132,7 +133,6 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestPositionRepository_GetPosition(t *testing.T) {
@@ -354,5 +354,4 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 			}
 		})
 	}
-
 }

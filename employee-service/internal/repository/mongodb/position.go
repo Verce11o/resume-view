@@ -3,6 +3,8 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
@@ -10,10 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
-var positionLimit = 5
+const positionLimit = 5
 
 type PositionRepository struct {
 	db   *mongo.Database
@@ -25,7 +26,6 @@ func NewPositionRepository(db *mongo.Database) *PositionRepository {
 }
 
 func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error) {
-
 	_, err := p.coll.InsertOne(ctx, &models.Position{
 		ID:        positionID,
 		Name:      request.Name,
@@ -76,7 +76,6 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 		if err != nil {
 			return models.PositionList{}, err
 		}
-
 	}
 
 	filter := bson.D{
@@ -126,7 +125,6 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 }
 
 func (p *PositionRepository) UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error) {
-
 	filter := bson.D{{Key: "_id", Value: id}}
 	update := bson.D{{Key: "$set", Value: models.Position{
 		ID:        id,

@@ -2,18 +2,18 @@ package redis
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	redisContainer "github.com/testcontainers/testcontainers-go/modules/redis"
-	"testing"
-	"time"
 )
 
 func TestEmployeeCache_SetEmployee(t *testing.T) {
-
 	ctx := context.Background()
 
 	container, connURI := setupRedisContainer(t)

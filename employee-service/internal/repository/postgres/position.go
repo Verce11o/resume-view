@@ -2,16 +2,17 @@ package postgres
 
 import (
 	"context"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 )
 
-var positionLimit = 5
+const positionLimit = 5
 
 type PositionRepository struct {
 	db *pgxpool.Pool
@@ -22,7 +23,6 @@ func NewPositionRepository(db *pgxpool.Pool) *PositionRepository {
 }
 
 func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error) {
-
 	q := "INSERT INTO positions(id, name, salary) VALUES ($1, $2, $3) RETURNING id, name, salary, created_at, updated_at"
 	row, err := p.db.Query(ctx, q, positionID, request.Name, request.Salary)
 
@@ -115,7 +115,6 @@ func (p *PositionRepository) UpdatePosition(ctx context.Context, id uuid.UUID, r
 }
 
 func (p *PositionRepository) DeletePosition(ctx context.Context, id uuid.UUID) error {
-
 	q := "DELETE FROM positions WHERE id = $1"
 	rows, err := p.db.Exec(ctx, q, id)
 

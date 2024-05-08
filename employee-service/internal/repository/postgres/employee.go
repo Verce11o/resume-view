@@ -3,16 +3,17 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 )
 
-var employeeLimit = 5
+const employeeLimit = 5
 
 type EmployeeRepository struct {
 	db *pgxpool.Pool
@@ -130,7 +131,6 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, r
 }
 
 func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
-
 	q := "DELETE FROM employees WHERE id = $1"
 	rows, err := p.db.Exec(ctx, q, id)
 

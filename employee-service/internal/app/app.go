@@ -2,6 +2,11 @@ package app
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/employee-service/internal/server"
 	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
@@ -10,10 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	mongoDriver "go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 )
 
 type App struct {

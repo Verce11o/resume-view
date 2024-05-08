@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"testing"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	_ "github.com/flashlabs/rootpath"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -11,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"testing"
 )
 
 func TestEmployeeRepository_CreateEmployee(t *testing.T) {
@@ -87,7 +88,6 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestEmployeeRepository_GetEmployee(t *testing.T) {
@@ -333,5 +333,4 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 			}
 		})
 	}
-
 }

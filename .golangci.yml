@@ -43,6 +43,7 @@ linters:
     - stylecheck
     - revive
     - wrapcheck
+    - wsl
 
 issues:
   exclude:

@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 const (
@@ -23,7 +24,6 @@ func NewPositionCache(client *redis.Client) *PositionCache {
 }
 
 func (r *PositionCache) GetPosition(ctx context.Context, positionID string) (*models.Position, error) {
-
 	positionBytes, err := r.client.Get(ctx, r.createKey(positionID)).Bytes()
 
 	if err != nil || errors.Is(err, redis.Nil) {

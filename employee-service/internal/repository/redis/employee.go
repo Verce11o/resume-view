@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 const (
@@ -23,7 +24,6 @@ func NewEmployeeCache(client *redis.Client) *EmployeeCache {
 }
 
 func (r *EmployeeCache) GetEmployee(ctx context.Context, employeeID string) (*models.Employee, error) {
-
 	employeeBytes, err := r.client.Get(ctx, r.createKey(employeeID)).Bytes()
 
 	if err != nil || errors.Is(err, redis.Nil) {

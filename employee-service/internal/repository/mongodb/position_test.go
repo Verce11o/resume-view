@@ -2,6 +2,9 @@ package mongodb
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -10,8 +13,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"testing"
-	"time"
 )
 
 func setupMongoDBContainer(t *testing.T) (testcontainers.Container, string) {
@@ -95,7 +96,6 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestPositionRepository_GetPosition(t *testing.T) {
@@ -279,10 +279,8 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 			}
-
 		})
 	}
-
 }
 
 func TestPositionRepository_DeletePosition(t *testing.T) {
