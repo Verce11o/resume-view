@@ -78,7 +78,7 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 }
 
 func (a *App) Run() error {
-	a.log.Infof("server starting on port %s...", a.cfg.Server.Port)
+	a.log.Infof("server starting on port %s...", a.cfg.HTTPServer.Port)
 
 	if err := a.srv.Run(a.srv.InitRoutes()); err != nil {
 		a.log.Errorf("Error while start server: %v", err)

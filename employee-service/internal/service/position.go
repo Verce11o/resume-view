@@ -55,7 +55,7 @@ func (s *PositionService) GetPosition(ctx context.Context, id uuid.UUID) (models
 	}
 
 	if cachedPosition != nil {
-		s.log.Debugf("returned from cache: %s", cachedPosition)
+		s.log.Debugf("returned from cache: %v", cachedPosition)
 
 		return *cachedPosition, nil
 	}

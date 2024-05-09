@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -29,19 +30,29 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func NewServer(log *zap.SugaredLogger, db *pgxpool.Pool, mongo *mongo.Client, redis *rdb.Client, cfg config.Config) *Server {
+func NewServer(
+	log *zap.SugaredLogger,
+	db *pgxpool.Pool,
+	mongo *mongo.Client,
+	redis *rdb.Client,
+	cfg config.Config) *Server {
 	return &Server{log: log, db: db, mongo: mongo, redis: redis, cfg: cfg}
 }
 
 func (s *Server) Run(handler http.Handler) error {
 	s.httpServer = &http.Server{
-		Addr:         s.cfg.Server.Port,
+		Addr:         s.cfg.HTTPServer.Port,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	s.log.Infof("Server running on: %v", s.cfg.Server.Port)
-	return s.httpServer.ListenAndServe()
+	s.log.Infof("HTTPServer running on: %v", s.cfg.HTTPServer.Port)
+
+	if err := s.httpServer.ListenAndServe(); err != nil {
+		return fmt.Errorf("failed to start HTTP server: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Server) InitRoutes() *gin.Engine {
@@ -75,5 +86,9 @@ func (s *Server) InitRoutes() *gin.Engine {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("failed to shutdown http server: %w", err)
+	}
+
+	return nil
 }
