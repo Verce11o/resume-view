@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,18 +13,18 @@ import (
 )
 
 type PositionService interface {
-	CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error)
+	CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error)
 	GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error)
 	GetPositionList(ctx context.Context, cursor string) (models.PositionList, error)
-	UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error)
+	UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error)
 	DeletePosition(ctx context.Context, id uuid.UUID) error
 }
 
 type EmployeeService interface {
-	CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error)
+	CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error)
 	GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error)
 	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
-	UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error)
+	UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error)
 	DeleteEmployee(ctx context.Context, id uuid.UUID) error
 }
 
@@ -46,7 +47,15 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 		return
 	}
 
-	employee, err := h.employeeService.CreateEmployee(c.Request.Context(), uuid.New(), uuid.New(), input)
+	employee, err := h.employeeService.CreateEmployee(c.Request.Context(), domain.CreateEmployee{
+		EmployeeID:   uuid.New(),
+		PositionID:   uuid.New(),
+		FirstName:    input.FirstName,
+		LastName:     input.LastName,
+		PositionName: input.PositionName,
+		Salary:       input.Salary,
+	})
+
 	if err != nil {
 		h.log.Errorf("error creating employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -109,7 +118,20 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 		return
 	}
 
-	employee, err := h.employeeService.UpdateEmployee(c.Request.Context(), employeeID, input)
+	positionID, err := uuid.Parse(input.PositionId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		return
+	}
+
+	employee, err := h.employeeService.UpdateEmployee(c.Request.Context(), domain.UpdateEmployee{
+		EmployeeID: employeeID,
+		PositionID: positionID,
+		FirstName:  input.FirstName,
+		LastName:   input.LastName,
+	})
+
 	if err != nil {
 		h.log.Errorf("error updating employee: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -149,7 +171,11 @@ func (h *Handler) CreatePosition(c *gin.Context) {
 		return
 	}
 
-	position, err := h.positionService.CreatePosition(c.Request.Context(), input)
+	position, err := h.positionService.CreatePosition(c.Request.Context(), domain.CreatePosition{
+		ID:     uuid.New(),
+		Name:   input.Name,
+		Salary: input.Salary,
+	})
 	if err != nil {
 		h.log.Errorf("error creating position: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -212,7 +238,12 @@ func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {
 		return
 	}
 
-	position, err := h.positionService.UpdatePosition(c.Request.Context(), positionID, input)
+	position, err := h.positionService.UpdatePosition(c.Request.Context(), domain.UpdatePosition{
+		ID:     positionID,
+		Name:   input.Name,
+		Salary: input.Salary,
+	})
+
 	if err != nil {
 		h.log.Errorf("error updating position: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})

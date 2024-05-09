@@ -23,13 +23,13 @@ import (
 type Server struct {
 	log        *zap.SugaredLogger
 	db         *pgxpool.Pool
-	mongo      *mongo.Database
+	mongo      *mongo.Client
 	redis      *rdb.Client
 	cfg        config.Config
 	httpServer *http.Server
 }
 
-func NewServer(log *zap.SugaredLogger, db *pgxpool.Pool, mongo *mongo.Database, redis *rdb.Client, cfg config.Config) *Server {
+func NewServer(log *zap.SugaredLogger, db *pgxpool.Pool, mongo *mongo.Client, redis *rdb.Client, cfg config.Config) *Server {
 	return &Server{log: log, db: db, mongo: mongo, redis: redis, cfg: cfg}
 }
 
@@ -47,15 +47,17 @@ func (s *Server) Run(handler http.Handler) error {
 func (s *Server) InitRoutes() *gin.Engine {
 	router := gin.New()
 
-	var positionRepo service.PositionRepository
-	var employeeRepo service.EmployeeRepository
+	var (
+		positionRepo service.PositionRepository
+		employeeRepo service.EmployeeRepository
+	)
 
 	positionRepo = postgres.NewPositionRepository(s.db)
 	employeeRepo = postgres.NewEmployeeRepository(s.db)
 
 	if strings.ToLower(s.cfg.MainDatabase) == "mongo" {
-		positionRepo = mongodb.NewPositionRepository(s.mongo)
-		employeeRepo = mongodb.NewEmployeeRepository(s.mongo)
+		positionRepo = mongodb.NewPositionRepository(s.mongo.Database("employees"))
+		employeeRepo = mongodb.NewEmployeeRepository(s.mongo.Database("employees"))
 	}
 
 	positionCache := redis.NewPositionCache(s.redis)

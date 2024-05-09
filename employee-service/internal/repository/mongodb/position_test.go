@@ -90,7 +90,7 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreatePosition(ctx, tt.positionID, tt.request)
+			_, err := repo.CreatePosition(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			}
@@ -121,7 +121,7 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, positionID, api.CreatePosition{
+	_, err = repo.CreatePosition(ctx, api.CreatePosition{
 		Name:   "Go Developer",
 		Salary: 30999,
 	})
@@ -176,7 +176,7 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	repo := NewPositionRepository(client.Database("employees"))
 
 	for i := 0; i < 10; i++ {
-		_, err := repo.CreatePosition(ctx, uuid.New(), api.CreatePosition{
+		_, err := repo.CreatePosition(ctx, api.CreatePosition{
 			Name:   "Sample",
 			Salary: 30999,
 		})
@@ -243,7 +243,7 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, positionID, api.CreatePosition{
+	_, err = repo.CreatePosition(ctx, api.CreatePosition{
 		Name:   "Sample",
 		Salary: 30999,
 	})
@@ -275,7 +275,7 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err = repo.UpdatePosition(ctx, tt.positionID, tt.request)
+			_, err = repo.UpdatePosition(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			}
@@ -306,7 +306,7 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, positionID, api.CreatePosition{
+	_, err = repo.CreatePosition(ctx, api.CreatePosition{
 		Name:   "Sample",
 		Salary: 30999,
 	})

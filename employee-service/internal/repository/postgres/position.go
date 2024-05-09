@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -22,9 +22,9 @@ func NewPositionRepository(db *pgxpool.Pool) *PositionRepository {
 	return &PositionRepository{db: db}
 }
 
-func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error) {
+func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error) {
 	q := "INSERT INTO positions(id, name, salary) VALUES ($1, $2, $3) RETURNING id, name, salary, created_at, updated_at"
-	row, err := p.db.Query(ctx, q, positionID, request.Name, request.Salary)
+	row, err := p.db.Query(ctx, q, req.ID, req.Name, req.Salary)
 
 	if err != nil {
 		return models.Position{}, err
@@ -95,12 +95,12 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *PositionRepository) UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error) {
+func (p *PositionRepository) UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error) {
 	q := `UPDATE positions SET name = COALESCE(NULLIF($2, ''), name), 
                      		   salary = COALESCE(NULLIF($3, 0), salary), updated_at = NOW()
                  WHERE id = $1 RETURNING id, name, salary, created_at, updated_at`
 
-	row, err := p.db.Query(ctx, q, id, request.Name, request.Salary)
+	row, err := p.db.Query(ctx, q, req.ID, req.Name, req.Salary)
 	if err != nil {
 		return models.Position{}, err
 	}

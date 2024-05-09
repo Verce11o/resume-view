@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,14 +39,14 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 		name       string
 		employeeID uuid.UUID
 		positionID uuid.UUID
-		request    api.CreateEmployee
+		request    domain.CreateEmployee
 		wantErr    bool
 	}{
 		{
 			name:       "Valid input",
 			employeeID: employeeID,
 			positionID: positionID,
-			request: api.CreateEmployee{
+			request: domain.CreateEmployee{
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Go Developer",
@@ -56,7 +57,7 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			name:       "Invalid position id",
 			positionID: uuid.Nil,
 			employeeID: employeeID,
-			request: api.CreateEmployee{
+			request: domain.CreateEmployee{
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -68,7 +69,7 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			name:       "Invalid employee id",
 			employeeID: uuid.Nil,
 			positionID: positionID,
-			request: api.CreateEmployee{
+			request: domain.CreateEmployee{
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -80,7 +81,7 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreateEmployee(ctx, tt.employeeID, tt.positionID, tt.request)
+			_, err := repo.CreateEmployee(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -114,7 +115,7 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, employeeID, positionID, api.CreateEmployee{
+	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "C++ Developer",
@@ -173,7 +174,7 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	repo := NewEmployeeRepository(client.Database("employee"))
 
 	for i := 0; i < 10; i++ {
-		_, err = repo.CreateEmployee(ctx, uuid.New(), uuid.New(), api.CreateEmployee{
+		_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
 			FirstName:    "Sample",
 			LastName:     "Sample",
 			PositionName: "Python Developer",
@@ -245,7 +246,7 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, employeeID, positionID, api.CreateEmployee{
+	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
 		FirstName:    "Sample",
 		LastName:     "Sample",
 		PositionName: "Python Developer",
@@ -282,7 +283,7 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err = repo.UpdateEmployee(ctx, tt.employeeID, tt.request)
+			_, err = repo.UpdateEmployee(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -316,7 +317,7 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, employeeID, positionID, api.CreateEmployee{
+	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "C++ Developer",

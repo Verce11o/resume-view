@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -25,11 +25,11 @@ func NewPositionRepository(db *mongo.Database) *PositionRepository {
 	return &PositionRepository{db: db, coll: db.Collection("positions")}
 }
 
-func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error) {
+func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error) {
 	_, err := p.coll.InsertOne(ctx, &models.Position{
-		ID:        positionID,
-		Name:      request.Name,
-		Salary:    request.Salary,
+		ID:        req.ID,
+		Name:      req.Name,
+		Salary:    req.Salary,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	})
@@ -40,7 +40,7 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, positionID uuid
 
 	var position models.Position
 	err = p.coll.FindOne(ctx, bson.M{
-		"_id": positionID,
+		"_id": req.ID,
 	}).Decode(&position)
 
 	if err != nil {
@@ -124,12 +124,12 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *PositionRepository) UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error) {
-	filter := bson.D{{Key: "_id", Value: id}}
+func (p *PositionRepository) UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error) {
+	filter := bson.D{{Key: "_id", Value: req.ID}}
 	update := bson.D{{Key: "$set", Value: models.Position{
-		ID:        id,
-		Name:      request.Name,
-		Salary:    request.Salary,
+		ID:        req.ID,
+		Name:      req.Name,
+		Salary:    req.Salary,
 		UpdatedAt: time.Now().UTC(),
 	}}}
 

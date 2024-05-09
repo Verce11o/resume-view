@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -25,14 +25,14 @@ func NewEmployeeRepository(db *mongo.Database) *EmployeeRepository {
 	return &EmployeeRepository{db: db, coll: db.Collection("employees")}
 }
 
-func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error) {
+func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
 	positionColl := p.db.Collection("positions")
 
 	callback := func(sess mongo.SessionContext) (interface{}, error) { //nolint:contextcheck
 		if _, err := positionColl.InsertOne(sess, models.Position{ //nolint:contextcheck
-			ID:        positionID,
-			Name:      request.PositionName,
-			Salary:    request.Salary,
+			ID:        req.PositionID,
+			Name:      req.PositionName,
+			Salary:    req.Salary,
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
 		}); err != nil {
@@ -40,10 +40,10 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid
 		}
 
 		if _, err := p.coll.InsertOne(sess, &models.Employee{
-			ID:         employeeID,
-			FirstName:  request.FirstName,
-			LastName:   request.LastName,
-			PositionID: positionID,
+			ID:         req.EmployeeID,
+			FirstName:  req.FirstName,
+			LastName:   req.LastName,
+			PositionID: req.PositionID,
 			CreatedAt:  time.Now().UTC(),
 			UpdatedAt:  time.Now().UTC(),
 		}); err != nil {
@@ -70,7 +70,7 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid
 
 	var employee models.Employee
 	err = p.coll.FindOne(ctx, bson.M{
-		"_id": employeeID,
+		"_id": req.EmployeeID,
 	}).Decode(&employee)
 
 	if err != nil {
@@ -151,28 +151,23 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error) {
-	positionID, err := uuid.Parse(request.PositionId)
-	if err != nil {
-		return models.Employee{}, err
-	}
-
+func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error) {
 	positionColl := p.db.Collection("positions")
 
-	err = positionColl.FindOne(ctx, bson.M{
-		"_id": positionID,
+	err := positionColl.FindOne(ctx, bson.M{
+		"_id": req.PositionID,
 	}).Err()
 
 	if err != nil {
 		return models.Employee{}, err
 	}
 
-	filter := bson.D{{Key: "_id", Value: id}}
+	filter := bson.D{{Key: "_id", Value: req.EmployeeID}}
 	update := bson.D{{Key: "$set", Value: models.Employee{
-		ID:         id,
-		FirstName:  request.FirstName,
-		LastName:   request.LastName,
-		PositionID: positionID,
+		ID:         req.EmployeeID,
+		FirstName:  req.FirstName,
+		LastName:   req.LastName,
+		PositionID: req.PositionID,
 		UpdatedAt:  time.Now().UTC(),
 	}}}
 

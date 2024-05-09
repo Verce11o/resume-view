@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -24,9 +25,11 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, error) {
-	var db *pgxpool.Pool
-	var mongo *mongoDriver.Client
-	var err error
+	var (
+		db    *pgxpool.Pool
+		mongo *mongoDriver.Client
+		err   error
+	)
 
 	if strings.ToLower(cfg.MainDatabase) == "postgres" {
 		db, err = postgresLib.New(ctx, postgresLib.Config{
@@ -51,7 +54,7 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not connect to database: %w", err)
 	}
 
 	redis, err := redisLib.New(ctx, redisLib.Config{
@@ -62,10 +65,10 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not connect to redis: %w", err)
 	}
 
-	srv := server.NewServer(log, db, mongo.Database("employees"), redis, cfg)
+	srv := server.NewServer(log, db, mongo, redis, cfg)
 
 	return &App{
 		cfg: cfg,
@@ -79,8 +82,10 @@ func (a *App) Run() error {
 
 	if err := a.srv.Run(a.srv.InitRoutes()); err != nil {
 		a.log.Errorf("Error while start server: %v", err)
-		return err
+
+		return fmt.Errorf("could not start server: %w", err)
 	}
+
 	return nil
 }
 
@@ -91,5 +96,11 @@ func (a *App) Wait() {
 }
 
 func (a *App) Stop(ctx context.Context) error {
-	return a.srv.Shutdown(ctx)
+	if err := a.srv.Shutdown(ctx); err != nil {
+		a.log.Errorf("Error while shutting down server: %v", err)
+
+		return fmt.Errorf("could not stop server: %w", err)
+	}
+
+	return nil
 }
