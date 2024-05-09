@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	Server       Server
+	HTTPServer   HTTPServer
 	Postgres     Postgres
 	MongoDB      MongoDB
 	Redis        Redis
@@ -15,7 +15,7 @@ type Config struct {
 	LogLevel     string `env:"LOG_LEVEL" env-default:"DEBUG"`
 }
 
-type Server struct {
+type HTTPServer struct {
 	Port string `env:"SERVER_PORT" env-default:":3009"`
 }
 
