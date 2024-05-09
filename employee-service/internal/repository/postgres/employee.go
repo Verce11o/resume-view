@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -23,7 +23,7 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 	return &EmployeeRepository{db: db}
 }
 
-func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error) {
+func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return models.Employee{}, err
@@ -33,14 +33,14 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, employeeID uuid
 
 	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
 
-	_, err = tx.Exec(ctx, createPositionQuery, positionID, request.PositionName, request.Salary)
+	_, err = tx.Exec(ctx, createPositionQuery, req.PositionID, req.PositionName, req.Salary)
 	if err != nil {
 		return models.Employee{}, err
 	}
 
 	createEmployeeQuery := "INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) RETURNING id, first_name, last_name, position_id,  created_at, updated_at"
 
-	rows, err := tx.Query(ctx, createEmployeeQuery, employeeID, request.FirstName, request.LastName, positionID)
+	rows, err := tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
 
 	if err != nil {
 		return models.Employee{}, err
@@ -110,13 +110,13 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	}, nil
 }
 
-func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error) {
+func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error) {
 	q := `UPDATE employees SET first_name = COALESCE(NULLIF($2, ''), first_name), 
                      last_name = COALESCE(NULLIF($3, ''), last_name), 
                      position_id =  $4 , updated_at = NOW()
                  WHERE id = $1 RETURNING id, first_name, last_name, position_id, created_at, updated_at`
 
-	row, err := p.db.Query(ctx, q, id, request.FirstName, request.LastName, request.PositionId)
+	row, err := p.db.Query(ctx, q, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
 	if err != nil {
 		return models.Employee{}, err
 	}

@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type PositionRepository interface {
-	CreatePosition(ctx context.Context, positionID uuid.UUID, request api.CreatePosition) (models.Position, error)
+	CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error)
 	GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error)
 	GetPositionList(ctx context.Context, cursor string) (models.PositionList, error)
-	UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error)
+	UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error)
 	DeletePosition(ctx context.Context, id uuid.UUID) error
 }
 
@@ -30,15 +30,20 @@ type PositionService struct {
 	cache PositionCacheRepository
 }
 
-func NewPositionService(log *zap.SugaredLogger, repo PositionRepository, cache PositionCacheRepository) *PositionService {
+func NewPositionService(
+	log *zap.SugaredLogger,
+	repo PositionRepository,
+	cache PositionCacheRepository) *PositionService {
 	return &PositionService{log: log, repo: repo, cache: cache}
 }
 
-func (s *PositionService) CreatePosition(ctx context.Context, request api.CreatePosition) (models.Position, error) {
-	position, err := s.repo.CreatePosition(ctx, uuid.New(), request)
+func (s *PositionService) CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error) {
+	position, err := s.repo.CreatePosition(ctx, req)
+
 	if err != nil {
 		return models.Position{}, fmt.Errorf("create position: %w", err)
 	}
+
 	return position, nil
 }
 
@@ -51,6 +56,7 @@ func (s *PositionService) GetPosition(ctx context.Context, id uuid.UUID) (models
 
 	if cachedPosition != nil {
 		s.log.Debugf("returned from cache: %s", cachedPosition)
+
 		return *cachedPosition, nil
 	}
 
@@ -68,14 +74,17 @@ func (s *PositionService) GetPosition(ctx context.Context, id uuid.UUID) (models
 
 func (s *PositionService) GetPositionList(ctx context.Context, cursor string) (models.PositionList, error) {
 	positionList, err := s.repo.GetPositionList(ctx, cursor)
+
 	if err != nil {
 		return models.PositionList{}, fmt.Errorf("get position list: %w", err)
 	}
+
 	return positionList, nil
 }
 
-func (s *PositionService) UpdatePosition(ctx context.Context, id uuid.UUID, request api.UpdatePosition) (models.Position, error) {
-	position, err := s.repo.UpdatePosition(ctx, id, request)
+func (s *PositionService) UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error) {
+	position, err := s.repo.UpdatePosition(ctx, req)
+
 	if err != nil {
 		return models.Position{}, fmt.Errorf("update position: %w", err)
 	}
@@ -89,11 +98,13 @@ func (s *PositionService) UpdatePosition(ctx context.Context, id uuid.UUID, requ
 
 func (s *PositionService) DeletePosition(ctx context.Context, id uuid.UUID) error {
 	position, err := s.repo.GetPosition(ctx, id)
+
 	if err != nil {
 		return fmt.Errorf("get position: %w", err)
 	}
 
 	err = s.repo.DeletePosition(ctx, id)
+
 	if err != nil {
 		return fmt.Errorf("delete position: %w", err)
 	}
@@ -101,5 +112,6 @@ func (s *PositionService) DeletePosition(ctx context.Context, id uuid.UUID) erro
 	if err := s.cache.DeletePosition(ctx, position.ID.String()); err != nil {
 		s.log.Errorf("delete position from cache: %s", err)
 	}
+
 	return nil
 }

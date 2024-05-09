@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type EmployeeRepository interface {
-	CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error)
+	CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error)
 	GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error)
 	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
-	UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error)
+	UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error)
 	DeleteEmployee(ctx context.Context, id uuid.UUID) error
 }
 
@@ -30,15 +30,20 @@ type EmployeeService struct {
 	cache EmployeeCacheRepository
 }
 
-func NewEmployeeService(log *zap.SugaredLogger, repo EmployeeRepository, cache EmployeeCacheRepository) *EmployeeService {
+func NewEmployeeService(
+	log *zap.SugaredLogger,
+	repo EmployeeRepository,
+	cache EmployeeCacheRepository) *EmployeeService {
 	return &EmployeeService{log: log, repo: repo, cache: cache}
 }
 
-func (s *EmployeeService) CreateEmployee(ctx context.Context, employeeID uuid.UUID, positionID uuid.UUID, request api.CreateEmployee) (models.Employee, error) {
-	employee, err := s.repo.CreateEmployee(ctx, employeeID, positionID, request)
+func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
+	employee, err := s.repo.CreateEmployee(ctx, req)
+
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("create employee: %w", err)
 	}
+
 	return employee, nil
 }
 
@@ -51,6 +56,7 @@ func (s *EmployeeService) GetEmployee(ctx context.Context, id uuid.UUID) (models
 
 	if cachedEmployee != nil {
 		s.log.Debugf("returned from cache: %s", cachedEmployee)
+
 		return *cachedEmployee, nil
 	}
 
@@ -71,11 +77,12 @@ func (s *EmployeeService) GetEmployeeList(ctx context.Context, cursor string) (m
 	if err != nil {
 		return models.EmployeeList{}, fmt.Errorf("get employee list: %w", err)
 	}
+
 	return employeeList, nil
 }
 
-func (s *EmployeeService) UpdateEmployee(ctx context.Context, id uuid.UUID, request api.UpdateEmployee) (models.Employee, error) {
-	employee, err := s.repo.UpdateEmployee(ctx, id, request)
+func (s *EmployeeService) UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error) {
+	employee, err := s.repo.UpdateEmployee(ctx, req)
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("update employee: %w", err)
 	}

@@ -125,7 +125,7 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreatePosition(ctx, tt.positionID, tt.request)
+			_, err := repo.CreatePosition(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -298,7 +298,7 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.UpdatePosition(ctx, tt.positionID, tt.request)
+			_, err := repo.UpdatePosition(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

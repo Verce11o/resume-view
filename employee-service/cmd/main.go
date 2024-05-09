@@ -18,6 +18,7 @@ func main() {
 	application, err := app.New(ctx, cfg, log)
 	if err != nil {
 		log.Errorf("Failed to initialize application: %v", err)
+
 		return
 	}
 

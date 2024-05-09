@@ -80,7 +80,7 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreateEmployee(ctx, tt.employeeID, tt.positionID, tt.request)
+			_, err := repo.CreateEmployee(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -272,7 +272,7 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.UpdateEmployee(ctx, tt.employeeID, tt.request)
+			_, err := repo.UpdateEmployee(ctx, tt.request)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
