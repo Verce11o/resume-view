@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	_ "github.com/flashlabs/rootpath"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -35,17 +35,15 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	positionID := uuid.New()
 
 	tests := []struct {
-		name       string
-		employeeID uuid.UUID
-		positionID uuid.UUID
-		request    api.CreateEmployee
-		wantErr    bool
+		name    string
+		request domain.CreateEmployee
+		wantErr bool
 	}{
 		{
-			name:       "Valid input",
-			employeeID: employeeID,
-			positionID: positionID,
-			request: api.CreateEmployee{
+			name: "Valid input",
+			request: domain.CreateEmployee{
+				EmployeeID:   employeeID,
+				PositionID:   positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Go Developer",
@@ -53,10 +51,10 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			},
 		},
 		{
-			name:       "Invalid position id",
-			positionID: uuid.Nil,
-			employeeID: employeeID,
-			request: api.CreateEmployee{
+			name: "Invalid position id",
+			request: domain.CreateEmployee{
+				PositionID:   uuid.Nil,
+				EmployeeID:   employeeID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -65,10 +63,10 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:       "Invalid employee id",
-			employeeID: uuid.Nil,
-			positionID: positionID,
-			request: api.CreateEmployee{
+			name: "Invalid employee id",
+			request: domain.CreateEmployee{
+				EmployeeID:   uuid.Nil,
+				PositionID:   positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -242,29 +240,26 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name       string
-		employeeID uuid.UUID
-		positionID uuid.UUID
-		request    api.UpdateEmployee
-		wantErr    bool
+		name    string
+		request domain.UpdateEmployee
+		wantErr bool
 	}{
 		{
-			name:       "Valid input",
-			employeeID: employeeID,
-			positionID: positionID,
-			request: api.UpdateEmployee{
+			name: "Valid input",
+			request: domain.UpdateEmployee{
+				EmployeeID: employeeID,
+				PositionID: positionID,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
-				PositionId: positionID.String(),
 			},
 		},
 		{
-			name:       "Non-existing position",
-			employeeID: employeeID,
-			request: api.UpdateEmployee{
+			name: "Non-existing position",
+			request: domain.UpdateEmployee{
+				EmployeeID: employeeID,
+				PositionID: uuid.Nil,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
-				PositionId: "",
 			},
 			wantErr: true,
 		},

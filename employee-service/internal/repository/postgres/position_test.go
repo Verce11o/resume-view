@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	_ "github.com/flashlabs/rootpath"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -78,48 +78,48 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 
 	positionID := uuid.New()
 	tests := []struct {
-		name       string
-		positionID uuid.UUID
-		request    api.CreatePosition
-		wantErr    bool
+		name    string
+		request domain.CreatePosition
+		wantErr bool
 	}{
 		{
-			name:       "Valid input",
-			positionID: positionID,
-			request: api.CreatePosition{
+			name: "Valid input",
+			request: domain.CreatePosition{
+				ID:     positionID,
 				Name:   "Python Developer",
 				Salary: 30999,
 			},
 		},
 		{
-			name:       "Duplicate position id",
-			positionID: positionID,
-			request: api.CreatePosition{
+			name: "Duplicate position id",
+			request: domain.CreatePosition{
+				ID:     positionID,
 				Name:   "Golang Developer",
 				Salary: 33333,
 			},
 			wantErr: true,
 		},
 		{
-			name:       "Empty name",
-			positionID: uuid.New(),
-			request: api.CreatePosition{
+			name: "Empty name",
+			request: domain.CreatePosition{
+				ID:     uuid.New(),
 				Name:   "",
 				Salary: 30999,
 			},
 		},
 		{
-			name:       "Empty salary",
-			positionID: uuid.New(),
-			request: api.CreatePosition{
+			name: "Empty salary",
+			request: domain.CreatePosition{
+				ID:     uuid.New(),
 				Name:   "Python Developer",
 				Salary: 0,
 			},
 		},
 		{
-			name:       "Empty position_id",
-			positionID: uuid.Nil,
-			request:    api.CreatePosition{},
+			name: "Empty position_id",
+			request: domain.CreatePosition{
+				ID: uuid.Nil,
+			},
 		},
 	}
 
@@ -274,21 +274,21 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	tests := []struct {
 		name       string
 		positionID uuid.UUID
-		request    api.UpdatePosition
+		request    domain.UpdatePosition
 		wantErr    bool
 	}{
 		{
-			name:       "Valid input",
-			positionID: positionID,
-			request: api.UpdatePosition{
+			name: "Valid input",
+			request: domain.UpdatePosition{
+				ID:     positionID,
 				Name:   "Python Developer",
 				Salary: 30999,
 			},
 		},
 		{
-			name:       "Non-existing position",
-			positionID: uuid.New(),
-			request: api.UpdatePosition{
+			name: "Non-existing position",
+			request: domain.UpdatePosition{
+				ID:     uuid.New(),
 				Name:   "PHP Developer",
 				Salary: 9999999,
 			},

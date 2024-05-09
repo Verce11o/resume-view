@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -116,6 +115,8 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	positionID := uuid.New()
 
 	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		EmployeeID:   employeeID,
+		PositionID:   positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "C++ Developer",
@@ -175,6 +176,8 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+			EmployeeID:   uuid.New(),
+			PositionID:   uuid.New(),
 			FirstName:    "Sample",
 			LastName:     "Sample",
 			PositionName: "Python Developer",
@@ -247,6 +250,8 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	positionID := uuid.New()
 
 	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		EmployeeID:   employeeID,
+		PositionID:   positionID,
 		FirstName:    "Sample",
 		LastName:     "Sample",
 		PositionName: "Python Developer",
@@ -256,27 +261,26 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name       string
-		employeeID uuid.UUID
-		request    api.UpdateEmployee
-		wantErr    bool
+		name    string
+		request domain.UpdateEmployee
+		wantErr bool
 	}{
 		{
-			name:       "Valid input",
-			employeeID: employeeID,
-			request: api.UpdateEmployee{
+			name: "Valid input",
+			request: domain.UpdateEmployee{
+				EmployeeID: employeeID,
+				PositionID: positionID,
 				FirstName:  "New Name",
 				LastName:   "New Last Name",
-				PositionId: positionID.String(),
 			},
 		},
 		{
-			name:       "Non-existent employee id",
-			employeeID: uuid.Nil,
-			request: api.UpdateEmployee{
+			name: "Non-existent employee id",
+			request: domain.UpdateEmployee{
+				EmployeeID: uuid.Nil,
+				PositionID: positionID,
 				FirstName:  "New Name",
 				LastName:   "New Last  Name",
-				PositionId: positionID.String(),
 			},
 			wantErr: true,
 		},
@@ -318,6 +322,8 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	positionID := uuid.New()
 
 	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		EmployeeID:   employeeID,
+		PositionID:   positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "C++ Developer",
