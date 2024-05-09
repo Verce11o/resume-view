@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
+	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,23 +65,22 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	positionID := uuid.New()
 
 	tests := []struct {
-		name       string
-		positionID uuid.UUID
-		request    api.CreatePosition
-		wantErr    bool
+		name    string
+		request domain.CreatePosition
+		wantErr bool
 	}{
 		{
-			name:       "Valid input",
-			positionID: positionID,
-			request: api.CreatePosition{
+			name: "Valid input",
+			request: domain.CreatePosition{
+				ID:     positionID,
 				Name:   "Go Developer",
 				Salary: 30999,
 			},
 		},
 		{
-			name:       "Duplicate position id",
-			positionID: positionID,
-			request: api.CreatePosition{
+			name: "Duplicate position id",
+			request: domain.CreatePosition{
+				ID:     positionID,
 				Name:   "Go Developer",
 				Salary: 30999,
 			},
@@ -121,7 +120,8 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, api.CreatePosition{
+	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 30999,
 	})
@@ -176,7 +176,8 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	repo := NewPositionRepository(client.Database("employees"))
 
 	for i := 0; i < 10; i++ {
-		_, err := repo.CreatePosition(ctx, api.CreatePosition{
+		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+			ID:     uuid.New(),
 			Name:   "Sample",
 			Salary: 30999,
 		})
@@ -243,7 +244,8 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, api.CreatePosition{
+	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
 		Name:   "Sample",
 		Salary: 30999,
 	})
@@ -252,21 +254,21 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	tests := []struct {
 		name       string
 		positionID uuid.UUID
-		request    api.UpdatePosition
+		request    domain.UpdatePosition
 		wantErr    bool
 	}{
 		{
-			name:       "Valid input",
-			positionID: positionID,
-			request: api.UpdatePosition{
+			name: "Valid input",
+			request: domain.UpdatePosition{
+				ID:     positionID,
 				Name:   "NewName",
 				Salary: 10300,
 			},
 		},
 		{
-			name:       "Non-existent position id",
-			positionID: uuid.Nil,
-			request: api.UpdatePosition{
+			name: "Non-existent position id",
+			request: domain.UpdatePosition{
+				ID:     uuid.Nil,
 				Name:   "NewName",
 				Salary: 10300,
 			},
@@ -306,7 +308,8 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, api.CreatePosition{
+	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
 		Name:   "Sample",
 		Salary: 30999,
 	})
