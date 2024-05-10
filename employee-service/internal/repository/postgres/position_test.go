@@ -36,8 +36,7 @@ func runMigrations(t *testing.T, connURI string) {
 	}
 }
 
-func setupPostgresContainer(t *testing.T) (*postgres.PostgresContainer, string) {
-	ctx := context.Background()
+func setupPostgresContainer(ctx context.Context, t *testing.T) (*postgres.PostgresContainer, string) {
 	postgresContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:latest"),
 		postgres.WithDatabase("employees"),
@@ -61,7 +60,7 @@ func setupPostgresContainer(t *testing.T) (*postgres.PostgresContainer, string) 
 }
 
 func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, *postgres.PostgresContainer) {
-	container, connURI := setupPostgresContainer(t)
+	container, connURI := setupPostgresContainer(ctx, t)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
