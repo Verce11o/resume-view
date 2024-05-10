@@ -6,28 +6,29 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/google/uuid"
 )
 
 func DecodeCursor(encodedCursor string) (time.Time, uuid.UUID, error) {
 	byt, err := base64.StdEncoding.DecodeString(encodedCursor)
 	if err != nil {
-		return time.Time{}, uuid.Nil, fmt.Errorf("failed to decode cursor: %w", err)
+		return time.Time{}, uuid.Nil, customerrors.ErrInvalidCursor
 	}
 
 	arrStr := strings.Split(string(byt), ",")
 	if len(arrStr) != 2 {
-		return time.Time{}, uuid.Nil, err
+		return time.Time{}, uuid.Nil, customerrors.ErrInvalidCursor
 	}
 
 	res, err := time.Parse(time.RFC3339Nano, arrStr[0])
 	if err != nil {
-		return time.Time{}, uuid.Nil, err
+		return time.Time{}, uuid.Nil, customerrors.ErrInvalidCursor
 	}
 
 	id, err := uuid.Parse(arrStr[1])
 	if err != nil {
-		return time.Time{}, uuid.Nil, err
+		return time.Time{}, uuid.Nil, customerrors.ErrInvalidCursor
 	}
 
 	return res, id, nil

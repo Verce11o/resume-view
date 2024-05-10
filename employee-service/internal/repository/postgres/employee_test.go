@@ -24,14 +24,18 @@ func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, 
 	repo := NewEmployeeRepository(dbPool)
 
 	return repo, container
-
 }
 
 func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -94,7 +98,12 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -142,7 +151,12 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	for i := 0; i < 10; i++ {
 		_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
@@ -199,7 +213,12 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	ctx := context.Background()
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -257,7 +276,12 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 	employeeID := uuid.New()

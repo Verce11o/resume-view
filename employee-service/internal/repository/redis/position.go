@@ -27,13 +27,13 @@ func (r *PositionCache) GetPosition(ctx context.Context, positionID string) (*mo
 	positionBytes, err := r.client.Get(ctx, r.createKey(positionID)).Bytes()
 
 	if err != nil || errors.Is(err, redis.Nil) {
-		return nil, err
+		return nil, fmt.Errorf("position with id %s does not exist", positionID)
 	}
 
 	var position models.Position
 
 	if err = json.Unmarshal(positionBytes, &position); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal position with id %s: %w", positionID, err)
 	}
 
 	return &position, nil
@@ -43,14 +43,25 @@ func (r *PositionCache) SetPosition(ctx context.Context, positionID string, posi
 	positionBytes, err := json.Marshal(position)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal position with id %s: %w", positionID, err)
 	}
 
-	return r.client.Set(ctx, r.createKey(positionID), positionBytes, time.Second*time.Duration(positionTTL)).Err()
+	err = r.client.Set(ctx, r.createKey(positionID), positionBytes, time.Second*time.Duration(positionTTL)).Err()
+
+	if err != nil {
+		return fmt.Errorf("failed to set position with id %s: %w", positionID, err)
+	}
+
+	return nil
 }
 
 func (r *PositionCache) DeletePosition(ctx context.Context, positionID string) error {
-	return r.client.Del(ctx, r.createKey(positionID)).Err()
+	err := r.client.Del(ctx, r.createKey(positionID)).Err()
+	if err != nil {
+		return fmt.Errorf("failed to delete position with id %s: %w", positionID, err)
+	}
+
+	return nil
 }
 
 func (r *PositionCache) createKey(key string) string {

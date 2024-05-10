@@ -3,9 +3,10 @@ package pagination
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func DecodeCursor(encodedCursor string) (time.Time, uuid.UUID, error) {

@@ -15,9 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func setupMongoDBContainer(t *testing.T) (testcontainers.Container, string) {
-	ctx := context.Background()
-
+func setupMongoDBContainer(ctx context.Context, t *testing.T) (testcontainers.Container, string) {
 	entrypointScript := []string{
 		"/bin/bash", "-c",
 		`echo "rs.initiate()" > /docker-entrypoint-initdb.d/1-init-replicaset.js &&
@@ -46,7 +44,7 @@ func setupMongoDBContainer(t *testing.T) (testcontainers.Container, string) {
 }
 
 func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, testcontainers.Container) {
-	container, connURI := setupMongoDBContainer(t)
+	container, connURI := setupMongoDBContainer(ctx, t)
 
 	client, err := mongo.Connect(ctx,
 		options.Client().ApplyURI(connURI),
@@ -63,7 +61,12 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
@@ -104,7 +107,12 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
@@ -146,7 +154,12 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	for i := 0; i < 10; i++ {
 		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
@@ -200,7 +213,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
@@ -249,7 +267,12 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
