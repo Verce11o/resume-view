@@ -102,16 +102,19 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
 
-	repo := NewEmployeeRepository(dbPool)
+	employeeRepo := NewEmployeeRepository(dbPool)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary)  VALUES  ($1, $2, $3)", positionID, "Go Developer", 123456)
-
-	require.NoError(t, err)
-
-	_, err = dbPool.Exec(ctx, "INSERT INTO employees (id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4)", employeeID, "John", "Doe", positionID)
+	_, err = employeeRepo.CreateEmployee(ctx, domain.CreateEmployee{
+		EmployeeID:   employeeID,
+		PositionID:   positionID,
+		FirstName:    "John",
+		LastName:     "Doe",
+		PositionName: "Go Developer",
+		Salary:       0,
+	})
 
 	require.NoError(t, err)
 
@@ -133,7 +136,7 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.GetEmployee(ctx, tt.employeeID)
+			_, err := employeeRepo.GetEmployee(ctx, tt.employeeID)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -162,13 +165,15 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	tx, err := dbPool.Begin(ctx)
 	require.NoError(t, err)
 
-	positionID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", positionID, "Sample", 1987)
-
-	require.NoError(t, err)
-
 	for i := 0; i < 10; i++ {
-		_, err = tx.Exec(ctx, "INSERT INTO employees (id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4)", uuid.New(), "John", "Doe", positionID)
+		_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+			EmployeeID:   uuid.New(),
+			PositionID:   uuid.New(),
+			FirstName:    "John",
+			LastName:     "Doe",
+			PositionName: "Go Developer",
+			Salary:       30999,
+		})
 		require.NoError(t, err)
 	}
 
@@ -229,13 +234,17 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 
 	repo := NewEmployeeRepository(dbPool)
 
-	positionID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", positionID, "Sample", 1987)
-
-	require.NoError(t, err)
-
 	employeeID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO employees (id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4)", employeeID, "John", "Doe", positionID)
+	positionID := uuid.New()
+
+	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		EmployeeID:   employeeID,
+		PositionID:   positionID,
+		FirstName:    "John",
+		LastName:     "Doe",
+		PositionName: "Go developer",
+		Salary:       30999,
+	})
 
 	require.NoError(t, err)
 
@@ -294,12 +303,16 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	repo := NewEmployeeRepository(dbPool)
 
 	positionID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", positionID, "Sample", 1987)
-
-	require.NoError(t, err)
-
 	employeeID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO employees (id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4)", employeeID, "John", "Doe", positionID)
+
+	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		EmployeeID:   employeeID,
+		PositionID:   positionID,
+		FirstName:    "John",
+		LastName:     "Doe",
+		PositionName: "Go developer",
+		Salary:       30999,
+	})
 
 	require.NoError(t, err)
 

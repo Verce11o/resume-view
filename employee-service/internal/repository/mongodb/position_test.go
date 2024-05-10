@@ -56,7 +56,9 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -108,7 +110,9 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -165,7 +169,9 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -215,7 +221,9 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 			}
+
 			assert.Equal(t, len(resp.Positions), tt.length)
+
 			nextCursor = resp.Cursor
 		})
 	}
@@ -232,7 +240,9 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -296,7 +306,9 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 

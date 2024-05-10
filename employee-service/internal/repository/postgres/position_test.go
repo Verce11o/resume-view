@@ -152,7 +152,12 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	repo := NewPositionRepository(dbPool)
 
 	positionID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", positionID, "Sample", 1987)
+
+	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
+		Name:   "Go Developer",
+		Salary: 30999,
+	})
 
 	require.NoError(t, err)
 
@@ -204,7 +209,11 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
-		_, err = tx.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", uuid.New(), "sample", 9999)
+		_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+			ID:     uuid.New(),
+			Name:   "Sample",
+			Salary: 30999,
+		})
 		require.NoError(t, err)
 	}
 
@@ -267,7 +276,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	repo := NewPositionRepository(dbPool)
 
 	positionID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", positionID, "Sample", 1987)
+
+	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
+		Name:   "Go developer",
+		Salary: 30999,
+	})
 
 	require.NoError(t, err)
 
@@ -325,7 +339,12 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 	repo := NewPositionRepository(dbPool)
 
 	positionID := uuid.New()
-	_, err = dbPool.Exec(ctx, "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)", positionID, "Sample", 1987)
+
+	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
+		Name:   "Go developer",
+		Salary: 30999,
+	})
 
 	require.NoError(t, err)
 
