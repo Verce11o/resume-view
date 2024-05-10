@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -26,7 +28,7 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error starting transaction: %w", err)
 	}
 
 	defer tx.Rollback(ctx) //nolint:errcheck
@@ -35,24 +37,29 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 
 	_, err = tx.Exec(ctx, createPositionQuery, req.PositionID, req.PositionName, req.Salary)
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error inserting employee: %w", err)
 	}
 
-	createEmployeeQuery := "INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) RETURNING id, first_name, last_name, position_id,  created_at, updated_at"
+	createEmployeeQuery := `INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) 
+                                        RETURNING id, first_name, last_name, position_id,  created_at, updated_at`
 
 	rows, err := tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
 
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error inserting employee: %w", err)
 	}
 
 	employee, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error inserting employee: %w", err)
 	}
 
-	return employee, tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return models.Employee{}, fmt.Errorf("error committing employee: %w", err)
+	}
+
+	return employee, nil
 }
 
 func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error) {
@@ -60,44 +67,48 @@ func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (mod
 
 	row, err := p.db.Query(ctx, q, id)
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error getting employee: %w", err)
 	}
 
 	employee, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error getting employee: %w", err)
 	}
 
 	return employee, nil
 }
 
 func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error) {
-	var createdAt time.Time
-	var employeeID uuid.UUID
-	var err error
+	var (
+		createdAt  time.Time
+		employeeID uuid.UUID
+		err        error
+	)
 
 	if cursor != "" {
 		createdAt, employeeID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.EmployeeList{}, err
+			return models.EmployeeList{}, fmt.Errorf("error decoding cursor: %w", err)
 		}
 	}
 
-	q := "SELECT id, first_name, last_name, position_id, created_at, updated_at FROM employees WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3"
+	q := `SELECT id, first_name, last_name, position_id, created_at, updated_at 
+		  FROM employees WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3`
 
 	row, err := p.db.Query(ctx, q, createdAt, employeeID, employeeLimit)
 	if err != nil {
-		return models.EmployeeList{}, err
+		return models.EmployeeList{}, fmt.Errorf("error getting employee list: %w", err)
 	}
 
 	employeeList, err := pgx.CollectRows(row, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.EmployeeList{}, err
+		return models.EmployeeList{}, fmt.Errorf("error getting employee list: %w", err)
 	}
 
 	var nextCursor string
+
 	if len(employeeList) > 0 {
 		lastEmployee := employeeList[len(employeeList)-1]
 		fmt.Println(lastEmployee.ID.String())
@@ -111,20 +122,34 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 }
 
 func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error) {
-	q := `UPDATE employees SET first_name = COALESCE(NULLIF($2, ''), first_name), 
-                     last_name = COALESCE(NULLIF($3, ''), last_name), 
-                     position_id =  $4 , updated_at = NOW()
-                 WHERE id = $1 RETURNING id, first_name, last_name, position_id, created_at, updated_at`
+	q := `UPDATE employees
+             SET first_name = COALESCE(NULLIF($2, ''), first_name),
+                 last_name = COALESCE(NULLIF($3, ''), last_name),
+                 position_id= COALESCE(NULLIF($4, '')::uuid, position_id)
+           WHERE id = $1`
 
-	row, err := p.db.Query(ctx, q, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	tag, err := p.db.Exec(ctx, q, req.EmployeeID, req.FirstName, req.LastName, req.PositionID.String())
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error updating employee: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
+
+	row, err := p.db.Query(ctx, `SELECT id, first_name, last_name, position_id, created_at, updated_at 
+									 FROM employees WHERE id = $1`, req.EmployeeID)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	} else if err != nil {
+		return models.Employee{}, fmt.Errorf("error updating employee: %w", err)
 	}
 
 	employee, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("error updating employee: %w", err)
 	}
 
 	return employee, nil
@@ -135,12 +160,12 @@ func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) e
 	rows, err := p.db.Exec(ctx, q, id)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("error deleting employee: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return customerrors.ErrEmployeeNotFound
 	}
 
-	return err
+	return nil
 }
