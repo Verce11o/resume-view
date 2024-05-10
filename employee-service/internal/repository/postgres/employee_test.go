@@ -15,21 +15,23 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-func TestEmployeeRepository_CreateEmployee(t *testing.T) {
-	ctx := context.Background()
-
+func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, *postgres.PostgresContainer) {
 	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
 
 	repo := NewEmployeeRepository(dbPool)
+
+	return repo, container
+
+}
+
+func TestEmployeeRepository_CreateEmployee(t *testing.T) {
+	ctx := context.Background()
+
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -91,23 +93,13 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	employeeRepo := NewEmployeeRepository(dbPool)
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = employeeRepo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "John",
@@ -136,7 +128,7 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := employeeRepo.GetEmployee(ctx, tt.employeeID)
+			_, err := repo.GetEmployee(ctx, tt.employeeID)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -149,24 +141,11 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(dbPool)
-
-	tx, err := dbPool.Begin(ctx)
-	require.NoError(t, err)
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	for i := 0; i < 10; i++ {
-		_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 			EmployeeID:   uuid.New(),
 			PositionID:   uuid.New(),
 			FirstName:    "John",
@@ -176,8 +155,6 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 		})
 		require.NoError(t, err)
 	}
-
-	require.NoError(t, tx.Commit(ctx))
 
 	var nextCursor string
 	tests := []struct {
@@ -220,24 +197,13 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 
 func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	ctx := context.Background()
-
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(dbPool)
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "John",
@@ -289,23 +255,13 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(dbPool)
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 	employeeID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "John",
