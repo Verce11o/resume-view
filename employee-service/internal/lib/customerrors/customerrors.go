@@ -9,3 +9,5 @@ var ErrPositionNotUpdated = errors.New("position not updated")
 
 var ErrEmployeeNotFound = errors.New("employee not found")
 var ErrEmployeeNotUpdated = errors.New("employee not updated")
+
+var ErrInvalidCursor = errors.New("invalid cursor")

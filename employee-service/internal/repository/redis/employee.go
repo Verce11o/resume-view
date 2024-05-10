@@ -27,13 +27,13 @@ func (r *EmployeeCache) GetEmployee(ctx context.Context, employeeID string) (*mo
 	employeeBytes, err := r.client.Get(ctx, r.createKey(employeeID)).Bytes()
 
 	if err != nil || errors.Is(err, redis.Nil) {
-		return nil, err
+		return nil, fmt.Errorf("employee with id %s does not exist", employeeID)
 	}
 
 	var employee models.Employee
 
 	if err = json.Unmarshal(employeeBytes, &employee); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal employee with id %s: %w", employeeID, err)
 	}
 
 	return &employee, nil
@@ -43,14 +43,26 @@ func (r *EmployeeCache) SetEmployee(ctx context.Context, employeeID string, empl
 	employeeBytes, err := json.Marshal(employee)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal employee with id %s: %w", employeeID, err)
 	}
 
-	return r.client.Set(ctx, r.createKey(employeeID), employeeBytes, time.Second*time.Duration(employeeTTL)).Err()
+	err = r.client.Set(ctx, r.createKey(employeeID), employeeBytes, time.Second*time.Duration(employeeTTL)).Err()
+
+	if err != nil {
+		return fmt.Errorf("failed to set employee with id %s: %w", employeeID, err)
+	}
+
+	return nil
 }
 
 func (r *EmployeeCache) DeleteEmployee(ctx context.Context, employeeID string) error {
-	return r.client.Del(ctx, r.createKey(employeeID)).Err()
+	err := r.client.Del(ctx, r.createKey(employeeID)).Err()
+
+	if err != nil {
+		return fmt.Errorf("failed to delete employee with id %s: %w", employeeID, err)
+	}
+
+	return nil
 }
 
 func (r *EmployeeCache) createKey(key string) string {

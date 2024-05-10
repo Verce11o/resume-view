@@ -15,7 +15,7 @@ import (
 )
 
 func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, testcontainers.Container) {
-	container, connURI := setupMongoDBContainer(t)
+	container, connURI := setupMongoDBContainer(ctx, t)
 
 	client, err := mongo.Connect(ctx,
 		options.Client().ApplyURI(connURI),
@@ -32,7 +32,12 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -95,7 +100,12 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -143,7 +153,12 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	for i := 0; i < 10; i++ {
 		_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
@@ -202,7 +217,12 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -259,7 +279,12 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupEmployeeRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container testcontainers.Container, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate mongo container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()

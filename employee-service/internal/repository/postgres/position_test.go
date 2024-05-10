@@ -68,14 +68,18 @@ func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, 
 	repo := NewPositionRepository(dbPool)
 
 	return repo, container
-
 }
 
 func TestPositionRepository_CreatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 	tests := []struct {
@@ -140,7 +144,12 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
@@ -184,7 +193,12 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	for i := 0; i < 10; i++ {
 		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
@@ -239,7 +253,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
@@ -292,7 +311,12 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
 	repo, container := setupPositionRepo(ctx, t)
-	defer container.Terminate(ctx)
+	defer func(container *postgres.PostgresContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate postgres container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New()
 
