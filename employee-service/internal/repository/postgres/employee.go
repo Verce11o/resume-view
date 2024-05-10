@@ -28,7 +28,7 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error starting transaction: %w", err)
+		return models.Employee{}, fmt.Errorf("start transaction: %w", err)
 	}
 
 	defer tx.Rollback(ctx) //nolint:errcheck
@@ -37,7 +37,7 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 
 	_, err = tx.Exec(ctx, createPositionQuery, req.PositionID, req.PositionName, req.Salary)
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error inserting employee: %w", err)
+		return models.Employee{}, fmt.Errorf("inserting position: %w", err)
 	}
 
 	createEmployeeQuery := `INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) 
@@ -46,17 +46,17 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 	rows, err := tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
 
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error inserting employee: %w", err)
+		return models.Employee{}, fmt.Errorf("inserting employee: %w", err)
 	}
 
 	employee, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error inserting employee: %w", err)
+		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return models.Employee{}, fmt.Errorf("error committing employee: %w", err)
+		return models.Employee{}, fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return employee, nil
@@ -67,13 +67,13 @@ func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (mod
 
 	row, err := p.db.Query(ctx, q, id)
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error getting employee: %w", err)
+		return models.Employee{}, fmt.Errorf("get employee: %w", err)
 	}
 
 	employee, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error getting employee: %w", err)
+		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
 	return employee, nil
@@ -89,7 +89,7 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	if cursor != "" {
 		createdAt, employeeID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.EmployeeList{}, fmt.Errorf("error decoding cursor: %w", err)
+			return models.EmployeeList{}, fmt.Errorf("decode cursor: %w", err)
 		}
 	}
 
@@ -98,13 +98,13 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 
 	row, err := p.db.Query(ctx, q, createdAt, employeeID, employeeLimit)
 	if err != nil {
-		return models.EmployeeList{}, fmt.Errorf("error getting employee list: %w", err)
+		return models.EmployeeList{}, fmt.Errorf("get employee list: %w", err)
 	}
 
 	employeeList, err := pgx.CollectRows(row, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.EmployeeList{}, fmt.Errorf("error getting employee list: %w", err)
+		return models.EmployeeList{}, fmt.Errorf("decode employee list: %w", err)
 	}
 
 	var nextCursor string
@@ -130,7 +130,7 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.Upda
 
 	tag, err := p.db.Exec(ctx, q, req.EmployeeID, req.FirstName, req.LastName, req.PositionID.String())
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error updating employee: %w", err)
+		return models.Employee{}, fmt.Errorf("update employee: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
@@ -143,13 +143,13 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.Upda
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.Employee{}, customerrors.ErrEmployeeNotFound
 	} else if err != nil {
-		return models.Employee{}, fmt.Errorf("error updating employee: %w", err)
+		return models.Employee{}, fmt.Errorf("get employee: %w", err)
 	}
 
 	employee, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Employee])
 
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("error updating employee: %w", err)
+		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
 	return employee, nil
@@ -160,7 +160,7 @@ func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) e
 	rows, err := p.db.Exec(ctx, q, id)
 
 	if err != nil {
-		return fmt.Errorf("error deleting employee: %w", err)
+		return fmt.Errorf("delete employee: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
