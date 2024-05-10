@@ -2,9 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -27,13 +30,13 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.Crea
 	row, err := p.db.Query(ctx, q, req.ID, req.Name, req.Salary)
 
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("create position: %w", err)
 	}
 
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("create position: %w", err)
 	}
 
 	return position, nil
@@ -44,13 +47,13 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id uuid.UUID) (mod
 
 	row, err := p.db.Query(ctx, q, id)
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("get position: %w", err)
 	}
 
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("get position: %w", err)
 	}
 
 	return position, nil
@@ -66,24 +69,26 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	if cursor != "" {
 		createdAt, positionID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.PositionList{}, err
+			return models.PositionList{}, fmt.Errorf("get position list: %w", err)
 		}
 	}
 
-	q := "SELECT id, name, salary, created_at, updated_at FROM positions WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3"
+	q := `SELECT id, name, salary, created_at, updated_at FROM positions 
+		  WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3`
 
 	row, err := p.db.Query(ctx, q, createdAt, positionID, positionLimit)
 	if err != nil {
-		return models.PositionList{}, err
+		return models.PositionList{}, fmt.Errorf("get position list: %w", err)
 	}
 
 	positionList, err := pgx.CollectRows(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.PositionList{}, err
+		return models.PositionList{}, fmt.Errorf("get position list: %w", err)
 	}
 
 	var nextCursor string
+
 	if len(positionList) > 0 {
 		lastPosition := positionList[len(positionList)-1]
 		nextCursor = pagination.EncodeCursor(lastPosition.CreatedAt, lastPosition.ID.String())
@@ -98,17 +103,29 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 func (p *PositionRepository) UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error) {
 	q := `UPDATE positions SET name = COALESCE(NULLIF($2, ''), name), 
                      		   salary = COALESCE(NULLIF($3, 0), salary), updated_at = NOW()
-                 WHERE id = $1 RETURNING id, name, salary, created_at, updated_at`
+                 WHERE id = $1`
 
-	row, err := p.db.Query(ctx, q, req.ID, req.Name, req.Salary)
+	tag, err := p.db.Exec(ctx, q, req.ID, req.Name, req.Salary)
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("update position: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return models.Position{}, customerrors.ErrPositionNotFound
+	}
+
+	row, err := p.db.Query(ctx, `SELECT id, name, salary, created_at, updated_at FROM positions WHERE id = $1`, req.ID)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Position{}, customerrors.ErrEmployeeNotFound
+	} else if err != nil {
+		return models.Position{}, fmt.Errorf("update position: %w", err)
 	}
 
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("update position: %w", err)
 	}
 
 	return position, nil
@@ -119,12 +136,12 @@ func (p *PositionRepository) DeletePosition(ctx context.Context, id uuid.UUID) e
 	rows, err := p.db.Exec(ctx, q, id)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("delete position: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return customerrors.ErrPositionNotFound
 	}
 
-	return err
+	return nil
 }

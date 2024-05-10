@@ -4,4 +4,8 @@ import (
 	"errors"
 )
 
-var ErrNotFound = errors.New("not found")
+var ErrPositionNotFound = errors.New("position not found")
+var ErrPositionNotUpdated = errors.New("position not updated")
+
+var ErrEmployeeNotFound = errors.New("employee not found")
+var ErrEmployeeNotUpdated = errors.New("employee not updated")
