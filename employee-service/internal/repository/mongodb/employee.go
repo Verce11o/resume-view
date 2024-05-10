@@ -2,9 +2,12 @@ package mongodb
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -36,7 +39,7 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("insert position: %w", err)
 		}
 
 		if _, err := p.coll.InsertOne(sess, &models.Employee{
@@ -47,10 +50,10 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 			CreatedAt:  time.Now().UTC(),
 			UpdatedAt:  time.Now().UTC(),
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("insert employee: %w", err)
 		}
 
-		return nil, nil
+		return &models.Employee{}, nil
 	}
 
 	wc := writeconcern.Majority()
@@ -58,23 +61,28 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 
 	session, err := p.db.Client().StartSession()
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("start session: %w", err)
 	}
 
 	defer session.EndSession(ctx)
 
 	_, err = session.WithTransaction(ctx, callback, txnOptions)
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("start transaction: %w", err)
 	}
 
 	var employee models.Employee
+
 	err = p.coll.FindOne(ctx, bson.M{
 		"_id": req.EmployeeID,
 	}).Decode(&employee)
 
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
+
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
 	return employee, nil
@@ -87,8 +95,12 @@ func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (mod
 		"_id": id,
 	}).Decode(&employee)
 
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
+
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
 	return employee, nil
@@ -104,7 +116,7 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	if cursor != "" {
 		createdAt, employeeID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.EmployeeList{}, err
+			return models.EmployeeList{}, fmt.Errorf("decode cursor: %w", err)
 		}
 	}
 
@@ -128,18 +140,24 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 	findOptions.SetLimit(int64(employeeLimit))
 
 	cur, err := p.coll.Find(ctx, filter, findOptions)
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.EmployeeList{}, customerrors.ErrEmployeeNotFound
+	}
+
 	if err != nil {
-		return models.EmployeeList{}, err
+		return models.EmployeeList{}, fmt.Errorf("find employees: %w", err)
 	}
 
 	defer cur.Close(ctx)
 
 	employees := make([]models.Employee, 0, employeeLimit)
 	if err = cur.All(ctx, &employees); err != nil {
-		return models.EmployeeList{}, err
+		return models.EmployeeList{}, fmt.Errorf("decode employee list: %w", err)
 	}
 
 	var nextCursor string
+
 	if len(employees) > 0 {
 		lastEmployee := employees[len(employees)-1]
 		nextCursor = pagination.EncodeCursor(lastEmployee.CreatedAt, lastEmployee.ID.String())
@@ -158,8 +176,12 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.Upda
 		"_id": req.PositionID,
 	}).Err()
 
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
+
 	if err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("find employee: %w", err)
 	}
 
 	filter := bson.D{{Key: "_id", Value: req.EmployeeID}}
@@ -174,13 +196,13 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.Upda
 	res := p.coll.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
 
 	if res.Err() != nil {
-		return models.Employee{}, res.Err()
+		return models.Employee{}, fmt.Errorf("find and update employee: %w", err)
 	}
 
 	var result models.Employee
 
 	if err := res.Decode(&result); err != nil {
-		return models.Employee{}, err
+		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
 	return result, nil
@@ -192,11 +214,12 @@ func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) e
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("delete employee: %w", err)
 	}
 
 	if res.DeletedCount < 1 {
-		return mongo.ErrNoDocuments
+		return customerrors.ErrEmployeeNotFound
 	}
+
 	return nil
 }

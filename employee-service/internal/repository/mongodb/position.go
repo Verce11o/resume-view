@@ -2,10 +2,12 @@ package mongodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
@@ -35,7 +37,7 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.Crea
 	})
 
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("create position: %w", err)
 	}
 
 	var position models.Position
@@ -43,8 +45,12 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.Crea
 		"_id": req.ID,
 	}).Decode(&position)
 
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.Position{}, customerrors.ErrPositionNotFound
+	}
+
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
 
 	return position, nil
@@ -57,8 +63,12 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id uuid.UUID) (mod
 		"_id": id,
 	}).Decode(&position)
 
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.Position{}, customerrors.ErrPositionNotFound
+	}
+
 	if err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
 
 	return position, nil
@@ -74,7 +84,7 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	if cursor != "" {
 		createdAt, positionID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.PositionList{}, err
+			return models.PositionList{}, fmt.Errorf("get position list: %w", err)
 		}
 	}
 
@@ -98,18 +108,24 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	findOptions.SetLimit(int64(positionLimit))
 
 	cur, err := p.coll.Find(ctx, filter, findOptions)
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.PositionList{}, customerrors.ErrPositionNotFound
+	}
+
 	if err != nil {
-		return models.PositionList{}, err
+		return models.PositionList{}, fmt.Errorf("find positions: %w", err)
 	}
 
 	defer cur.Close(ctx)
 
 	positions := make([]models.Position, 0, positionLimit)
 	if err = cur.All(ctx, &positions); err != nil {
-		return models.PositionList{}, err
+		return models.PositionList{}, fmt.Errorf("find positions: %w", err)
 	}
 
 	var nextCursor string
+
 	if len(positions) > 0 {
 		lastPosition := positions[len(positions)-1]
 
@@ -135,14 +151,18 @@ func (p *PositionRepository) UpdatePosition(ctx context.Context, req domain.Upda
 
 	res := p.coll.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
 
+	if errors.Is(res.Err(), mongo.ErrNoDocuments) {
+		return models.Position{}, customerrors.ErrPositionNotFound
+	}
+
 	if res.Err() != nil {
-		return models.Position{}, res.Err()
+		return models.Position{}, fmt.Errorf("find and update position: %w", res.Err())
 	}
 
 	var result models.Position
 
 	if err := res.Decode(&result); err != nil {
-		return models.Position{}, err
+		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
 
 	return result, nil
@@ -154,11 +174,12 @@ func (p *PositionRepository) DeletePosition(ctx context.Context, id uuid.UUID) e
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("delete position: %w", err)
 	}
 
 	if res.DeletedCount < 1 {
-		return mongo.ErrNoDocuments
+		return customerrors.ErrEmployeeNotFound
 	}
+
 	return nil
 }

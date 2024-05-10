@@ -36,7 +36,7 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.Crea
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.Position{}, fmt.Errorf("create position: %w", err)
+		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
 
 	return position, nil
@@ -53,7 +53,7 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id uuid.UUID) (mod
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.Position{}, fmt.Errorf("get position: %w", err)
+		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
 
 	return position, nil
@@ -69,7 +69,7 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	if cursor != "" {
 		createdAt, positionID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.PositionList{}, fmt.Errorf("get position list: %w", err)
+			return models.PositionList{}, fmt.Errorf("decode cursor: %w", err)
 		}
 	}
 
@@ -84,7 +84,7 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	positionList, err := pgx.CollectRows(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.PositionList{}, fmt.Errorf("get position list: %w", err)
+		return models.PositionList{}, fmt.Errorf("decode list: %w", err)
 	}
 
 	var nextCursor string
@@ -119,13 +119,13 @@ func (p *PositionRepository) UpdatePosition(ctx context.Context, req domain.Upda
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.Position{}, customerrors.ErrEmployeeNotFound
 	} else if err != nil {
-		return models.Position{}, fmt.Errorf("update position: %w", err)
+		return models.Position{}, fmt.Errorf("get position: %w", err)
 	}
 
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
 	if err != nil {
-		return models.Position{}, fmt.Errorf("update position: %w", err)
+		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
 
 	return position, nil
