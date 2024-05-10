@@ -12,6 +12,7 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -35,6 +36,12 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.Crea
 
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
 
+	var pgErr *pgconn.PgError
+
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return models.Position{}, customerrors.ErrDuplicateID
+	}
+
 	if err != nil {
 		return models.Position{}, fmt.Errorf("decode position: %w", err)
 	}
@@ -51,6 +58,10 @@ func (p *PositionRepository) GetPosition(ctx context.Context, id uuid.UUID) (mod
 	}
 
 	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Position{}, customerrors.ErrPositionNotFound
+	}
 
 	if err != nil {
 		return models.Position{}, fmt.Errorf("decode position: %w", err)

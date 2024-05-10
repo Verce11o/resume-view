@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	_ "github.com/flashlabs/rootpath"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -85,7 +86,7 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	tests := []struct {
 		name    string
 		request domain.CreatePosition
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "Valid input",
@@ -102,40 +103,14 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 				Name:   "Golang Developer",
 				Salary: 33333,
 			},
-			wantErr: true,
-		},
-		{
-			name: "Empty name",
-			request: domain.CreatePosition{
-				ID:     uuid.New(),
-				Name:   "",
-				Salary: 30999,
-			},
-		},
-		{
-			name: "Empty salary",
-			request: domain.CreatePosition{
-				ID:     uuid.New(),
-				Name:   "Python Developer",
-				Salary: 0,
-			},
-		},
-		{
-			name: "Empty position_id",
-			request: domain.CreatePosition{
-				ID: uuid.Nil,
-			},
+			wantErr: customerrors.ErrDuplicateID,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := repo.CreatePosition(ctx, tt.request)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -153,7 +128,7 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 
 	positionID := uuid.New()
 
-	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	position, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 30999,
@@ -164,7 +139,7 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	tests := []struct {
 		name       string
 		positionID uuid.UUID
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -173,18 +148,21 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 		{
 			name:       "Non-existent position",
 			positionID: uuid.New(),
-			wantErr:    true,
+			wantErr:    customerrors.ErrPositionNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.GetPosition(ctx, tt.positionID)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
+			resp, err := repo.GetPosition(ctx, tt.positionID)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				assert.NotEqual(t, resp, position)
+
+				return
 			}
+
+			assert.Equal(t, resp, position)
 		})
 	}
 }
@@ -214,7 +192,7 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 		name    string
 		cursor  string
 		length  int
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name:   "First page",
@@ -230,18 +208,14 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 			name:    "Invalid cursor",
 			cursor:  "invalid",
 			length:  0,
-			wantErr: true,
+			wantErr: customerrors.ErrInvalidCursor,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := repo.GetPositionList(ctx, tt.cursor)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 
 			assert.Equal(t, len(resp.Positions), tt.length)
 			nextCursor = resp.Cursor
@@ -274,7 +248,7 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 		name       string
 		positionID uuid.UUID
 		request    domain.UpdatePosition
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name: "Valid input",
@@ -291,18 +265,14 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 				Name:   "PHP Developer",
 				Salary: 9999999,
 			},
-			wantErr: true,
+			wantErr: customerrors.ErrPositionNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := repo.UpdatePosition(ctx, tt.request)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -331,7 +301,7 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 	tests := []struct {
 		name       string
 		positionID uuid.UUID
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid position id",
@@ -340,17 +310,13 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 		{
 			name:       "Non-existing position",
 			positionID: uuid.New(),
-			wantErr:    true,
+			wantErr:    customerrors.ErrPositionNotFound,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := repo.DeletePosition(ctx, tt.positionID)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }

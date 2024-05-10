@@ -12,6 +12,7 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,9 +34,16 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	var pgErr *pgconn.PgError
+
 	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
 
 	_, err = tx.Exec(ctx, createPositionQuery, req.PositionID, req.PositionName, req.Salary)
+
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return models.Employee{}, customerrors.ErrDuplicateID
+	}
+
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("inserting position: %w", err)
 	}
@@ -50,6 +58,10 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 	}
 
 	employee, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Employee])
+
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return models.Employee{}, customerrors.ErrDuplicateID
+	}
 
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
@@ -71,6 +83,10 @@ func (p *EmployeeRepository) GetEmployee(ctx context.Context, id uuid.UUID) (mod
 	}
 
 	employee, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Employee])
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
 
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
@@ -111,7 +127,6 @@ func (p *EmployeeRepository) GetEmployeeList(ctx context.Context, cursor string)
 
 	if len(employeeList) > 0 {
 		lastEmployee := employeeList[len(employeeList)-1]
-		fmt.Println(lastEmployee.ID.String())
 		nextCursor = pagination.EncodeCursor(lastEmployee.CreatedAt, lastEmployee.ID.String())
 	}
 
@@ -128,7 +143,14 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.Upda
                  position_id= COALESCE(NULLIF($4, '')::uuid, position_id)
            WHERE id = $1`
 
+	var pgErr *pgconn.PgError
+
 	tag, err := p.db.Exec(ctx, q, req.EmployeeID, req.FirstName, req.LastName, req.PositionID.String())
+
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		return models.Employee{}, customerrors.ErrPositionNotFound
+	}
+
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("update employee: %w", err)
 	}

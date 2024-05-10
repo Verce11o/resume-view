@@ -5,9 +5,9 @@ import (
 )
 
 var ErrPositionNotFound = errors.New("position not found")
-var ErrPositionNotUpdated = errors.New("position not updated")
 
 var ErrEmployeeNotFound = errors.New("employee not found")
-var ErrEmployeeNotUpdated = errors.New("employee not updated")
+
+var ErrDuplicateID = errors.New("duplicate id")
 
 var ErrInvalidCursor = errors.New("invalid cursor")
