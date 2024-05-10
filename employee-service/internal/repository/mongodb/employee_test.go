@@ -25,7 +25,9 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -35,17 +37,15 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	positionID := uuid.New()
 
 	tests := []struct {
-		name       string
-		employeeID uuid.UUID
-		positionID uuid.UUID
-		request    domain.CreateEmployee
-		wantErr    bool
+		name    string
+		request domain.CreateEmployee
+		wantErr bool
 	}{
 		{
-			name:       "Valid input",
-			employeeID: employeeID,
-			positionID: positionID,
+			name: "Valid input",
 			request: domain.CreateEmployee{
+				EmployeeID:   employeeID,
+				PositionID:   positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Go Developer",
@@ -53,10 +53,10 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			},
 		},
 		{
-			name:       "Invalid position id",
-			positionID: uuid.Nil,
-			employeeID: employeeID,
+			name: "Invalid position id",
 			request: domain.CreateEmployee{
+				EmployeeID:   employeeID,
+				PositionID:   uuid.Nil,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -65,10 +65,10 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:       "Invalid employee id",
-			employeeID: uuid.Nil,
-			positionID: positionID,
+			name: "Invalid employee id",
 			request: domain.CreateEmployee{
+				EmployeeID:   uuid.Nil,
+				PositionID:   positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -101,7 +101,9 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -164,7 +166,9 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(
+		ctx, options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -219,7 +223,9 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, len(resp.Employees), tt.length)
+
 			nextCursor = resp.Cursor
 		})
 	}
@@ -236,7 +242,9 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
@@ -308,7 +316,9 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 		}
 	}(container, ctx)
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connURI), options.Client().SetMaxConnIdleTime(3*time.Second))
+	client, err := mongo.Connect(ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
 
 	require.NoError(t, err)
 
