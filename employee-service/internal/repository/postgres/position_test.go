@@ -60,21 +60,23 @@ func setupPostgresContainer(t *testing.T) (*postgres.PostgresContainer, string) 
 	return postgresContainer, connURI
 }
 
-func TestPositionRepository_CreatePosition(t *testing.T) {
-	ctx := context.Background()
-
+func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, *postgres.PostgresContainer) {
 	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
 
 	repo := NewPositionRepository(dbPool)
+
+	return repo, container
+
+}
+
+func TestPositionRepository_CreatePosition(t *testing.T) {
+	ctx := context.Background()
+
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 	tests := []struct {
@@ -138,22 +140,12 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 func TestPositionRepository_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(dbPool)
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 30999,
@@ -192,32 +184,17 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 func TestPositionRepository_GetPositionList(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(dbPool)
-
-	tx, err := dbPool.Begin(ctx)
-	require.NoError(t, err)
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	for i := 0; i < 10; i++ {
-		_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 			ID:     uuid.New(),
 			Name:   "Sample",
 			Salary: 30999,
 		})
 		require.NoError(t, err)
 	}
-
-	require.NoError(t, tx.Commit(ctx))
 
 	var nextCursor string
 	tests := []struct {
@@ -262,22 +239,12 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 func TestPositionRepository_UpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(dbPool)
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go developer",
 		Salary: 30999,
@@ -325,22 +292,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 func TestPositionRepository_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupPostgresContainer(t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(dbPool)
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go developer",
 		Salary: 30999,
