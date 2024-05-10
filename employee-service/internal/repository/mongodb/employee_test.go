@@ -14,16 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func TestEmployeeRepository_CreateEmployee(t *testing.T) {
-	ctx := context.Background()
-
+func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, testcontainers.Container) {
 	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
 
 	client, err := mongo.Connect(ctx,
 		options.Client().ApplyURI(connURI),
@@ -32,6 +24,15 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	require.NoError(t, err)
 
 	repo := NewEmployeeRepository(client.Database("employees"))
+
+	return repo, container
+}
+
+func TestEmployeeRepository_CreateEmployee(t *testing.T) {
+	ctx := context.Background()
+
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
@@ -93,30 +94,13 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(client.Database("employee"))
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "John",
@@ -158,28 +142,11 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(
-		ctx, options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(client.Database("employee"))
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	for i := 0; i < 10; i++ {
-		_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+		_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 			EmployeeID:   uuid.New(),
 			PositionID:   uuid.New(),
 			FirstName:    "Sample",
@@ -234,30 +201,13 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(client.Database("employee"))
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "Sample",
@@ -308,30 +258,13 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(client.Database("employee"))
+	repo, container := setupEmployeeRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err = repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "John",

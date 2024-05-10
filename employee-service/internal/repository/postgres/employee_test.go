@@ -16,7 +16,7 @@ import (
 )
 
 func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, *postgres.PostgresContainer) {
-	container, connURI := setupPostgresContainer(t)
+	container, connURI := setupPostgresContainer(ctx, t)
 
 	dbPool, err := pgxpool.New(ctx, connURI)
 	require.NoError(t, err)
@@ -189,6 +189,7 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, len(resp.Employees), tt.length)
 			nextCursor = resp.Cursor
 		})

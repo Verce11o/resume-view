@@ -45,16 +45,8 @@ func setupMongoDBContainer(t *testing.T) (testcontainers.Container, string) {
 	return mongoContainer, connURI + "/?directConnection=true&tls=false"
 }
 
-func TestPositionRepository_CreatePosition(t *testing.T) {
-	ctx := context.Background()
-
+func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, testcontainers.Container) {
 	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
 
 	client, err := mongo.Connect(ctx,
 		options.Client().ApplyURI(connURI),
@@ -63,6 +55,15 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	require.NoError(t, err)
 
 	repo := NewPositionRepository(client.Database("employees"))
+
+	return repo, container
+}
+
+func TestPositionRepository_CreatePosition(t *testing.T) {
+	ctx := context.Background()
+
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
@@ -102,29 +103,12 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 func TestPositionRepository_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(client.Database("employees"))
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 30999,
@@ -161,25 +145,8 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 func TestPositionRepository_GetPositionList(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(client.Database("employees"))
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	for i := 0; i < 10; i++ {
 		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
@@ -232,29 +199,12 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 func TestPositionRepository_UpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(client.Database("employees"))
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Sample",
 		Salary: 30999,
@@ -298,29 +248,12 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 func TestPositionRepository_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupMongoDBContainer(t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	err = client.Ping(ctx, nil)
-
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(client.Database("employees"))
+	repo, container := setupPositionRepo(ctx, t)
+	defer container.Terminate(ctx)
 
 	positionID := uuid.New()
 
-	_, err = repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Sample",
 		Salary: 30999,
