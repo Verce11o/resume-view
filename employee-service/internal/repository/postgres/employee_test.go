@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	_ "github.com/flashlabs/rootpath"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -43,7 +44,7 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	tests := []struct {
 		name    string
 		request domain.CreateEmployee
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "Valid input",
@@ -57,39 +58,36 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			},
 		},
 		{
-			name: "Invalid position id",
+			name: "Duplicate position id",
 			request: domain.CreateEmployee{
-				PositionID:   uuid.Nil,
-				EmployeeID:   employeeID,
-				FirstName:    "John",
-				LastName:     "Doe",
-				PositionName: "Python Developer",
-				Salary:       12345,
-			},
-			wantErr: true,
-		},
-		{
-			name: "Invalid employee id",
-			request: domain.CreateEmployee{
-				EmployeeID:   uuid.Nil,
+				EmployeeID:   uuid.New(),
 				PositionID:   positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
 				Salary:       12345,
 			},
-			wantErr: true,
+			wantErr: customerrors.ErrDuplicateID,
+		},
+		{
+			name: "Duplicate employee id",
+			request: domain.CreateEmployee{
+				EmployeeID:   employeeID,
+				PositionID:   uuid.New(),
+				FirstName:    "John",
+				LastName:     "Doe",
+				PositionName: "Python Developer",
+				Salary:       12345,
+			},
+			wantErr: customerrors.ErrDuplicateID,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := repo.CreateEmployee(ctx, tt.request)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -108,7 +106,7 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	employeeID := uuid.New()
 	positionID := uuid.New()
 
-	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	employee, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
 		PositionID:   positionID,
 		FirstName:    "John",
@@ -122,7 +120,7 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	tests := []struct {
 		name       string
 		employeeID uuid.UUID
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -131,18 +129,21 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 		{
 			name:       "Non-existent employee",
 			employeeID: uuid.New(),
-			wantErr:    true,
+			wantErr:    customerrors.ErrEmployeeNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.GetEmployee(ctx, tt.employeeID)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
+			resp, err := repo.GetEmployee(ctx, tt.employeeID)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				assert.NotEqual(t, resp, employee)
+
+				return
 			}
+
+			assert.Equal(t, resp, employee)
 		})
 	}
 }
@@ -175,7 +176,7 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 		name    string
 		cursor  string
 		length  int
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name:   "First page",
@@ -191,18 +192,14 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 			name:    "Invalid cursor",
 			cursor:  "invalid",
 			length:  0,
-			wantErr: true,
+			wantErr: customerrors.ErrInvalidCursor,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := repo.GetEmployeeList(ctx, tt.cursor)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 
 			assert.Equal(t, len(resp.Employees), tt.length)
 			nextCursor = resp.Cursor
@@ -237,7 +234,7 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	tests := []struct {
 		name    string
 		request domain.UpdateEmployee
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "Valid input",
@@ -256,18 +253,24 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
-			wantErr: true,
+			wantErr: customerrors.ErrPositionNotFound,
+		},
+		{
+			name: "Non-existing employee",
+			request: domain.UpdateEmployee{
+				EmployeeID: uuid.New(),
+				PositionID: positionID,
+				FirstName:  "NewName",
+				LastName:   "NewLastName",
+			},
+			wantErr: customerrors.ErrEmployeeNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := repo.UpdateEmployee(ctx, tt.request)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -300,7 +303,7 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	tests := []struct {
 		name       string
 		employeeID uuid.UUID
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid employee id",
@@ -309,17 +312,13 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 		{
 			name:       "Non-existing employee",
 			employeeID: uuid.New(),
-			wantErr:    true,
+			wantErr:    customerrors.ErrEmployeeNotFound,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := repo.DeleteEmployee(ctx, tt.employeeID)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
