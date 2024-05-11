@@ -32,24 +32,36 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 	positionColl := p.db.Collection("positions")
 
 	callback := func(sess mongo.SessionContext) (interface{}, error) { //nolint:contextcheck
-		if _, err := positionColl.InsertOne(sess, models.Position{ //nolint:contextcheck
+		_, err := positionColl.InsertOne(sess, models.Position{ //nolint:contextcheck
 			ID:        req.PositionID,
 			Name:      req.PositionName,
 			Salary:    req.Salary,
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
-		}); err != nil {
+		})
+
+		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				return nil, customerrors.ErrDuplicateID
+			}
+
 			return nil, fmt.Errorf("insert position: %w", err)
 		}
 
-		if _, err := p.coll.InsertOne(sess, &models.Employee{
+		_, err = p.coll.InsertOne(sess, &models.Employee{
 			ID:         req.EmployeeID,
 			FirstName:  req.FirstName,
 			LastName:   req.LastName,
 			PositionID: req.PositionID,
 			CreatedAt:  time.Now().UTC(),
 			UpdatedAt:  time.Now().UTC(),
-		}); err != nil {
+		})
+
+		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				return nil, customerrors.ErrDuplicateID
+			}
+
 			return nil, fmt.Errorf("insert employee: %w", err)
 		}
 
@@ -193,19 +205,31 @@ func (p *EmployeeRepository) UpdateEmployee(ctx context.Context, req domain.Upda
 		UpdatedAt:  time.Now().UTC(),
 	}}}
 
-	res := p.coll.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
+	res, err := p.coll.UpdateOne(ctx, filter, update)
 
-	if res.Err() != nil {
+	if err != nil {
 		return models.Employee{}, fmt.Errorf("find and update employee: %w", err)
 	}
 
-	var result models.Employee
+	if res.MatchedCount == 0 {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
 
-	if err := res.Decode(&result); err != nil {
+	var employee models.Employee
+
+	err = p.coll.FindOne(ctx, bson.M{
+		"_id": req.EmployeeID,
+	}).Decode(&employee)
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.Employee{}, customerrors.ErrEmployeeNotFound
+	}
+
+	if err != nil {
 		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
-	return result, nil
+	return employee, nil
 }
 
 func (p *EmployeeRepository) DeleteEmployee(ctx context.Context, id uuid.UUID) error {

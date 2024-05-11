@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/redis/go-redis/v9"
 )
@@ -27,7 +28,7 @@ func (r *EmployeeCache) GetEmployee(ctx context.Context, employeeID string) (*mo
 	employeeBytes, err := r.client.Get(ctx, r.createKey(employeeID)).Bytes()
 
 	if err != nil || errors.Is(err, redis.Nil) {
-		return nil, fmt.Errorf("employee with id %s does not exist", employeeID)
+		return nil, customerrors.ErrEmployeeNotCached
 	}
 
 	var employee models.Employee
