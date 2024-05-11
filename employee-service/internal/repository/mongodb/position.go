@@ -37,6 +37,10 @@ func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.Crea
 	})
 
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return models.Position{}, customerrors.ErrDuplicateID
+		}
+
 		return models.Position{}, fmt.Errorf("create position: %w", err)
 	}
 
@@ -178,7 +182,7 @@ func (p *PositionRepository) DeletePosition(ctx context.Context, id uuid.UUID) e
 	}
 
 	if res.DeletedCount < 1 {
-		return customerrors.ErrEmployeeNotFound
+		return customerrors.ErrPositionNotFound
 	}
 
 	return nil
