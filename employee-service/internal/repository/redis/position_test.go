@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -15,8 +16,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func setupRedisContainer(t *testing.T) (*redisContainer.RedisContainer, string) {
-	ctx := context.Background()
+func setupRedisContainer(ctx context.Context, t *testing.T) (*redisContainer.RedisContainer, string) {
 	container, err := redisContainer.RunContainer(ctx,
 		testcontainers.WithImage("redis:latest"),
 		testcontainers.WithWaitStrategy(
@@ -33,33 +33,38 @@ func setupRedisContainer(t *testing.T) (*redisContainer.RedisContainer, string) 
 	return container, connURI
 }
 
-func TestPositionCache_SetPosition(t *testing.T) {
-	ctx := context.Background()
-
-	container, connURI := setupRedisContainer(t)
-	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}(container, ctx)
+func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionCache, *redisContainer.RedisContainer) {
+	container, connURI := setupRedisContainer(ctx, t)
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,
 	})
 
-	_, err := client.Ping(ctx).Result()
+	positionCacheRepo := NewPositionCache(client)
 
-	require.NoError(t, err)
+	return positionCacheRepo, container
+
+}
+
+func TestPositionCache_SetPosition(t *testing.T) {
+	ctx := context.Background()
+
+	repo, container := setupPositionRepo(ctx, t)
+
+	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
+		err := container.Terminate(ctx)
+		if err != nil {
+			t.Fatalf("could not terminate redis container: %v", err.Error())
+		}
+	}(container, ctx)
 
 	positionID := uuid.New().String()
-	positionCacheRepo := NewPositionCache(client)
 
 	tests := []struct {
 		name       string
 		positionID string
 		position   *models.Position
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -76,12 +81,8 @@ func TestPositionCache_SetPosition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := positionCacheRepo.SetPosition(ctx, tt.positionID, tt.position)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			err := repo.SetPosition(ctx, tt.positionID, tt.position)
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -89,23 +90,18 @@ func TestPositionCache_SetPosition(t *testing.T) {
 func TestPositionCache_GetPosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupRedisContainer(t)
+	repo, container := setupPositionRepo(ctx, t)
+
 	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
 		err := container.Terminate(ctx)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("could not terminate redis container: %v", err.Error())
 		}
 	}(container, ctx)
 
-	client := redis.NewClient(&redis.Options{
-		Addr: connURI,
-	})
-
-	positionCacheRepo := NewPositionCache(client)
-
 	positionID := uuid.New()
 
-	err := positionCacheRepo.SetPosition(ctx, positionID.String(), &models.Position{
+	err := repo.SetPosition(ctx, positionID.String(), &models.Position{
 		ID:        positionID,
 		Name:      "Sample",
 		Salary:    30999,
@@ -118,7 +114,7 @@ func TestPositionCache_GetPosition(t *testing.T) {
 	tests := []struct {
 		name       string
 		positionID string
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -127,18 +123,14 @@ func TestPositionCache_GetPosition(t *testing.T) {
 		{
 			name:       "Non-existent position",
 			positionID: uuid.New().String(),
-			wantErr:    true,
+			wantErr:    customerrors.ErrPositionNotCached,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := positionCacheRepo.GetPosition(ctx, tt.positionID)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			_, err := repo.GetPosition(ctx, tt.positionID)
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -146,23 +138,18 @@ func TestPositionCache_GetPosition(t *testing.T) {
 func TestPositionCache_DeletePosition(t *testing.T) {
 	ctx := context.Background()
 
-	container, connURI := setupRedisContainer(t)
+	repo, container := setupPositionRepo(ctx, t)
+
 	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
 		err := container.Terminate(ctx)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("could not terminate redis container: %v", err.Error())
 		}
 	}(container, ctx)
 
-	client := redis.NewClient(&redis.Options{
-		Addr: connURI,
-	})
-
-	positionCacheRepo := NewPositionCache(client)
-
 	positionID := uuid.New()
 
-	err := positionCacheRepo.SetPosition(ctx, positionID.String(), &models.Position{
+	err := repo.SetPosition(ctx, positionID.String(), &models.Position{
 		ID:        positionID,
 		Name:      "Sample",
 		Salary:    30999,
@@ -175,7 +162,7 @@ func TestPositionCache_DeletePosition(t *testing.T) {
 	tests := []struct {
 		name       string
 		positionID string
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -185,12 +172,8 @@ func TestPositionCache_DeletePosition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := positionCacheRepo.DeletePosition(ctx, tt.positionID)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			err := repo.DeletePosition(ctx, tt.positionID)
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
