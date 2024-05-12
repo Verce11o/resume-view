@@ -32,7 +32,7 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, error) {
-	employeeRepo, positionRepo, err := initRepos(ctx, cfg)
+	employeeRepo, positionRepo, transactor, err := initRepos(ctx, cfg)
 
 	if err != nil {
 		return nil, fmt.Errorf("init repos: %w", err)
@@ -52,7 +52,7 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	employeeCache := redis.NewEmployeeCache(redisClient)
 	positionCache := redis.NewPositionCache(redisClient)
 
-	employeeService := service.NewEmployeeService(log, employeeRepo, employeeCache)
+	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
 	srv := server.NewServer(log, employeeService, positionService, cfg)
@@ -92,7 +92,7 @@ func (a *App) Stop(ctx context.Context) error {
 	return nil
 }
 
-func initRepos(ctx context.Context, cfg config.Config) (service.EmployeeRepository, service.PositionRepository, error) {
+func initRepos(ctx context.Context, cfg config.Config) (service.EmployeeRepository, service.PositionRepository, service.Transactor, error) {
 	switch cfg.MainDatabase {
 	case mainPostgres:
 		db, err := postgresLib.New(ctx, postgresLib.Config{
@@ -105,10 +105,10 @@ func initRepos(ctx context.Context, cfg config.Config) (service.EmployeeReposito
 		})
 
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
 		}
 
-		return postgres.NewEmployeeRepository(db), postgres.NewPositionRepository(db), nil
+		return postgres.NewEmployeeRepository(db), postgres.NewPositionRepository(db), postgres.NewTransactor(db), nil
 
 	case mainMongodb:
 		mongo, err := mongoLib.New(ctx, mongoLib.Config{
@@ -121,14 +121,14 @@ func initRepos(ctx context.Context, cfg config.Config) (service.EmployeeReposito
 		})
 
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to connect to mongodb: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to connect to mongodb: %w", err)
 		}
 
 		db := mongo.Database(mongoMainDatabase)
 
-		return mongodb.NewEmployeeRepository(db), mongodb.NewPositionRepository(db), nil
+		return mongodb.NewEmployeeRepository(db), mongodb.NewPositionRepository(db), mongodb.NewTransactor(mongo), nil
 
 	default:
-		return nil, nil, fmt.Errorf("unknown database type: %s", cfg.MainDatabase)
+		return nil, nil, nil, fmt.Errorf("unknown database type: %s", cfg.MainDatabase)
 	}
 }

@@ -28,36 +28,22 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 }
 
 func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return models.Employee{}, fmt.Errorf("start transaction: %w", err)
-	}
-
-	defer func() {
-		err := tx.Rollback(ctx)
-		if err != nil {
-			return
-		}
-	}()
-
-	var pgErr *pgconn.PgError
-
-	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
-
-	_, err = tx.Exec(ctx, createPositionQuery, req.PositionID, req.PositionName, req.Salary)
-
-	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-		return models.Employee{}, customerrors.ErrDuplicateID
-	}
-
-	if err != nil {
-		return models.Employee{}, fmt.Errorf("inserting position: %w", err)
-	}
+	var (
+		pgErr *pgconn.PgError
+		rows  pgx.Rows
+		err   error
+	)
 
 	createEmployeeQuery := `INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) 
                                         RETURNING id, first_name, last_name, position_id,  created_at, updated_at`
 
-	rows, err := tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	tx := extractTx(ctx)
+
+	if tx != nil {
+		rows, err = tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	} else {
+		rows, err = p.db.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	}
 
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("inserting employee: %w", err)
