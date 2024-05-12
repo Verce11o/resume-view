@@ -24,7 +24,6 @@ func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeCache, *redi
 	employeeCacheRepo := NewEmployeeCache(client)
 
 	return employeeCacheRepo, container
-
 }
 
 func TestEmployeeCache_SetEmployee(t *testing.T) {

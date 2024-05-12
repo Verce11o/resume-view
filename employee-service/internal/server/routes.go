@@ -61,14 +61,17 @@ func (s *Server) InitRoutes() *gin.Engine {
 	var (
 		positionRepo service.PositionRepository
 		employeeRepo service.EmployeeRepository
+		transactor   service.Transactor
 	)
 
 	positionRepo = postgres.NewPositionRepository(s.db)
 	employeeRepo = postgres.NewEmployeeRepository(s.db)
+	transactor = postgres.NewTransactor(s.db)
 
 	if strings.ToLower(s.cfg.MainDatabase) == "mongo" {
 		positionRepo = mongodb.NewPositionRepository(s.mongo.Database("employees"))
 		employeeRepo = mongodb.NewEmployeeRepository(s.mongo.Database("employees"))
+		transactor = mongodb.NewTransactor(s.mongo)
 	}
 
 	positionCache := redis.NewPositionCache(s.redis)
@@ -76,7 +79,7 @@ func (s *Server) InitRoutes() *gin.Engine {
 
 	positionService := service.NewPositionService(s.log, positionRepo, positionCache)
 
-	employeeService := service.NewEmployeeService(s.log, employeeRepo, employeeCache)
+	employeeService := service.NewEmployeeService(s.log, employeeRepo, positionRepo, employeeCache, transactor)
 
 	apiGroup := router.Group("/api/v1")
 
