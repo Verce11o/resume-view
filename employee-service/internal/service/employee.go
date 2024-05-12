@@ -24,24 +24,52 @@ type EmployeeCacheRepository interface {
 	DeleteEmployee(ctx context.Context, employeeID string) error
 }
 
-type EmployeeService struct {
-	log   *zap.SugaredLogger
-	repo  EmployeeRepository
-	cache EmployeeCacheRepository
+type Transactor interface {
+	WithTransaction(context.Context, func(ctx context.Context) error) error
 }
 
-func NewEmployeeService(
-	log *zap.SugaredLogger,
-	repo EmployeeRepository,
-	cache EmployeeCacheRepository) *EmployeeService {
-	return &EmployeeService{log: log, repo: repo, cache: cache}
+type EmployeeService struct {
+	log          *zap.SugaredLogger
+	employeeRepo EmployeeRepository
+	positionRepo PositionRepository
+	cache        EmployeeCacheRepository
+	transactor   Transactor
+}
+
+func NewEmployeeService(log *zap.SugaredLogger,
+	employeeRepo EmployeeRepository,
+	positionRepo PositionRepository,
+	cache EmployeeCacheRepository,
+	transactor Transactor) *EmployeeService {
+	return &EmployeeService{log: log,
+		employeeRepo: employeeRepo,
+		positionRepo: positionRepo,
+		cache:        cache,
+		transactor:   transactor}
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
-	employee, err := s.repo.CreateEmployee(ctx, req)
+	var employee models.Employee
 
+	err := s.transactor.WithTransaction(ctx, func(ctx context.Context) error {
+		_, err := s.positionRepo.CreatePosition(ctx, domain.CreatePosition{
+			ID:     req.PositionID,
+			Name:   req.PositionName,
+			Salary: req.Salary,
+		})
+		if err != nil {
+			return fmt.Errorf("create position: %w", err)
+		}
+
+		employee, err = s.employeeRepo.CreateEmployee(ctx, req)
+		if err != nil {
+			return fmt.Errorf("create employee: %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return models.Employee{}, fmt.Errorf("create employee: %w", err)
+		return models.Employee{}, fmt.Errorf("create employee with transaction: %w", err)
 	}
 
 	return employee, nil
@@ -60,7 +88,7 @@ func (s *EmployeeService) GetEmployee(ctx context.Context, id uuid.UUID) (models
 		return *cachedEmployee, nil
 	}
 
-	employee, err := s.repo.GetEmployee(ctx, id)
+	employee, err := s.employeeRepo.GetEmployee(ctx, id)
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("get employee: %w", err)
 	}
@@ -73,7 +101,7 @@ func (s *EmployeeService) GetEmployee(ctx context.Context, id uuid.UUID) (models
 }
 
 func (s *EmployeeService) GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error) {
-	employeeList, err := s.repo.GetEmployeeList(ctx, cursor)
+	employeeList, err := s.employeeRepo.GetEmployeeList(ctx, cursor)
 	if err != nil {
 		return models.EmployeeList{}, fmt.Errorf("get employee list: %w", err)
 	}
@@ -82,7 +110,7 @@ func (s *EmployeeService) GetEmployeeList(ctx context.Context, cursor string) (m
 }
 
 func (s *EmployeeService) UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error) {
-	employee, err := s.repo.UpdateEmployee(ctx, req)
+	employee, err := s.employeeRepo.UpdateEmployee(ctx, req)
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("update employee: %w", err)
 	}
@@ -95,12 +123,12 @@ func (s *EmployeeService) UpdateEmployee(ctx context.Context, req domain.UpdateE
 }
 
 func (s *EmployeeService) DeleteEmployee(ctx context.Context, id uuid.UUID) error {
-	employee, err := s.repo.GetEmployee(ctx, id)
+	employee, err := s.employeeRepo.GetEmployee(ctx, id)
 	if err != nil {
 		return fmt.Errorf("get employee: %w", err)
 	}
 
-	err = s.repo.DeleteEmployee(ctx, employee.ID)
+	err = s.employeeRepo.DeleteEmployee(ctx, employee.ID)
 	if err != nil {
 		return fmt.Errorf("delete employee: %w", err)
 	}
