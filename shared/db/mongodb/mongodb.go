@@ -3,6 +3,8 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"net"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -17,14 +19,17 @@ type Config struct {
 }
 
 func New(ctx context.Context, cfg Config) (*mongo.Client, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:%s/?directConnection=true&tls=false", cfg.Host, cfg.Port)))
+	connURI := fmt.Sprintf("mongodb://%s/?directConnection=true&tls=false", net.JoinHostPort(cfg.Host, cfg.Port))
+	option := options.Client().ApplyURI(connURI)
+
+	client, err := mongo.Connect(ctx, option)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("connect mongodb: %w", err)
 	}
 
 	if err = client.Ping(ctx, nil); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ping mongodb: %w", err)
 	}
 
 	return client, nil

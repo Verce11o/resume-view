@@ -32,7 +32,12 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 		return models.Employee{}, fmt.Errorf("start transaction: %w", err)
 	}
 
-	defer tx.Rollback(ctx) //nolint:errcheck
+	defer func() {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			return
+		}
+	}()
 
 	var pgErr *pgconn.PgError
 

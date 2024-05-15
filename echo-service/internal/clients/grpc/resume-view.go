@@ -2,6 +2,11 @@ package grpc
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"strconv"
+	"time"
+
 	"github.com/Verce11o/resume-view/echo-service/internal/config"
 	pb "github.com/Verce11o/resume-view/protos/gen/go"
 	grpclog "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -9,22 +14,19 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"log/slog"
-	"strconv"
-	"time"
 )
 
 func NewViewServiceClient(ctx context.Context, log *slog.Logger, cfg *config.Config) (pb.ViewServiceClient, error) {
 	timeout, err := time.ParseDuration(cfg.ClientTimeout)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse client timeout: %w", err)
 	}
 
 	retries, err := strconv.Atoi(cfg.RetriesCount)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse retries count: %w", err)
 	}
 
 	retryOpts := []grpcretry.CallOption{
@@ -45,7 +47,7 @@ func NewViewServiceClient(ctx context.Context, log *slog.Logger, cfg *config.Con
 		))
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to dial view service: %w", err)
 	}
 
 	return pb.NewViewServiceClient(cc), nil

@@ -1,13 +1,14 @@
-package grpc_errors
+package customerrors
 
 import (
 	"context"
 	"errors"
+
 	"google.golang.org/grpc/codes"
 )
 
 var (
-	ErrNotFound      = errors.New("view not found")
+	ErrNotFound      = errors.New("not found")
 	ErrInvalidCursor = errors.New("invalid cursor")
 )
 
@@ -22,5 +23,6 @@ func ParseGRPCErrStatusCode(err error) codes.Code {
 	case errors.Is(err, ErrInvalidCursor):
 		return codes.InvalidArgument
 	}
+
 	return codes.Internal
 }

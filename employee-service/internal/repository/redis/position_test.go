@@ -43,7 +43,6 @@ func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionCache, *redi
 	positionCacheRepo := NewPositionCache(client)
 
 	return positionCacheRepo, container
-
 }
 
 func TestPositionCache_SetPosition(t *testing.T) {
