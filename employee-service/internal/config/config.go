@@ -11,7 +11,7 @@ type Config struct {
 	Postgres     Postgres
 	MongoDB      MongoDB
 	Redis        Redis
-	MainDatabase string `env:"MAIN_DATABASE" env-default:"postgres"`
+	MainDatabase string `env:"MAIN_DATABASE" env-default:"mongo"`
 	LogLevel     string `env:"LOG_LEVEL" env-default:"DEBUG"`
 }
 
