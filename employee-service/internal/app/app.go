@@ -92,7 +92,8 @@ func (a *App) Stop(ctx context.Context) error {
 	return nil
 }
 
-func initRepos(ctx context.Context, cfg config.Config) (service.EmployeeRepository, service.PositionRepository, service.Transactor, error) {
+func initRepos(ctx context.Context, cfg config.Config) (
+	service.EmployeeRepository, service.PositionRepository, service.Transactor, error) {
 	switch cfg.MainDatabase {
 	case mainPostgres:
 		db, err := postgresLib.New(ctx, postgresLib.Config{

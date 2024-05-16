@@ -59,10 +59,6 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return models.Employee{}, fmt.Errorf("commit transaction: %w", err)
-	}
-
 	return employee, nil
 }
 
