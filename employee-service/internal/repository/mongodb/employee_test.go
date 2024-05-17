@@ -15,6 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var positionID = uuid.New()
+
 func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, testcontainers.Container) {
 	container, connURI := setupMongoDBContainer(ctx, t)
 
@@ -25,6 +27,14 @@ func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, 
 	require.NoError(t, err)
 
 	repo := NewEmployeeRepository(client.Database("employees"))
+	positionRepo := NewPositionRepository(client.Database("employees"))
+
+	_, err = positionRepo.CreatePosition(ctx, domain.CreatePosition{
+		ID:     positionID,
+		Name:   "Go Developer",
+		Salary: 10999,
+	})
+	require.NoError(t, err)
 
 	return repo, container
 }
@@ -41,7 +51,6 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 	}(container, ctx)
 
 	employeeID := uuid.New()
-	positionID := uuid.New()
 
 	tests := []struct {
 		name    string
@@ -60,22 +69,10 @@ func TestEmployeeRepository_CreateEmployee(t *testing.T) {
 			},
 		},
 		{
-			name: "Duplicate position id",
-			request: domain.CreateEmployee{
-				EmployeeID:   uuid.New(),
-				PositionID:   positionID,
-				FirstName:    "John",
-				LastName:     "Doe",
-				PositionName: "Python Developer",
-				Salary:       12345,
-			},
-			wantErr: customerrors.ErrDuplicateID,
-		},
-		{
 			name: "Duplicate employee id",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   uuid.New(),
+				PositionID:   positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -105,7 +102,6 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	}(container, ctx)
 
 	employeeID := uuid.New()
-	positionID := uuid.New()
 
 	employee, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
@@ -221,7 +217,6 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 	}(container, ctx)
 
 	employeeID := uuid.New()
-	positionID := uuid.New()
 
 	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
@@ -279,7 +274,6 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	}(container, ctx)
 
 	employeeID := uuid.New()
-	positionID := uuid.New()
 
 	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,

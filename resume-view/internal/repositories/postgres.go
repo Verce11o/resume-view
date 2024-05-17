@@ -3,14 +3,16 @@ package repositories
 import (
 	"context"
 	"errors"
-	"github.com/Verce11o/resume-view/resume-view/internal/lib/grpc_errors"
+	"fmt"
+	"time"
+
+	customerrors "github.com/Verce11o/resume-view/resume-view/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/resume-view/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/resume-view/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/trace"
-	"time"
 )
 
 const paginationLimit = 20
@@ -36,7 +38,7 @@ func (r *ViewRepository) CreateView(ctx context.Context, resumeID, companyID str
 		Scan(&id)
 
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, fmt.Errorf("failed create view: %w", err)
 	}
 
 	return id, nil
@@ -46,41 +48,49 @@ func (r *ViewRepository) ListResumeView(ctx context.Context, cursor, resumeID st
 	ctx, span := r.tracer.Start(ctx, "viewRepository.ListResumeView")
 	defer span.End()
 
-	var viewedAt time.Time
-	var viewID uuid.UUID
-	var err error
+	var (
+		viewedAt time.Time
+		viewID   uuid.UUID
+		err      error
+	)
 
 	if cursor != "" {
 		viewedAt, viewID, err = pagination.DecodeCursor(cursor)
 		if err != nil {
-			return models.ViewList{}, grpc_errors.ErrInvalidCursor
+			return models.ViewList{}, customerrors.ErrInvalidCursor
 		}
 	}
 
 	var total int
+
 	q := "SELECT COUNT(*) FROM views WHERE resume_id = $1"
 
 	err = r.db.QueryRow(ctx, q, resumeID).Scan(&total)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) || total == 0 {
-		return models.ViewList{}, grpc_errors.ErrNotFound
+		return models.ViewList{}, customerrors.ErrNotFound
 	}
 
 	if err != nil {
-		return models.ViewList{}, err
+		return models.ViewList{}, fmt.Errorf("failed to count views: %w", err)
 	}
 
-	q = "SELECT id, resume_id, company_id, viewed_at FROM views WHERE (viewed_at, id) > ($1, $2) AND resume_id = $3 ORDER BY viewed_at DESC, id LIMIT $4"
+	q = `SELECT id, resume_id, company_id, viewed_at FROM views WHERE (viewed_at, id) > ($1, $2) 
+		 AND resume_id = $3 ORDER BY viewed_at DESC, id LIMIT $4`
 
 	rows, err := r.db.Query(ctx, q, viewedAt, viewID, resumeID, paginationLimit)
 
+	if err != nil && errors.Is(err, pgx.ErrNoRows) || total == 0 {
+		return models.ViewList{}, customerrors.ErrNotFound
+	}
+
 	if err != nil {
-		return models.ViewList{}, err
+		return models.ViewList{}, fmt.Errorf("failed to list views: %w", err)
 	}
 
 	views, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.View])
 
 	if err != nil {
-		return models.ViewList{}, err
+		return models.ViewList{}, fmt.Errorf("failed to list views: %w", err)
 	}
 
 	var nextCursor string
@@ -93,5 +103,4 @@ func (r *ViewRepository) ListResumeView(ctx context.Context, cursor, resumeID st
 		Views:  views,
 		Total:  total,
 	}, nil
-
 }

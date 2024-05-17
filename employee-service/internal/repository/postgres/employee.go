@@ -11,6 +11,7 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -50,7 +51,7 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 
 	employee, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Employee])
 
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		return models.Employee{}, customerrors.ErrDuplicateID
 	}
 
