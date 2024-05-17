@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -60,28 +61,38 @@ func setupPostgresContainer(ctx context.Context, t *testing.T) (*postgres.Postgr
 	return postgresContainer, connURI
 }
 
-func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, *postgres.PostgresContainer) {
-	container, connURI := setupPostgresContainer(ctx, t)
-
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(dbPool)
-
-	return repo, container
+type PositionRepositorySuite struct {
+	suite.Suite
+	ctx       context.Context
+	repo      *PositionRepository
+	container *postgres.PostgresContainer
 }
 
-func TestPositionRepository_CreatePosition(t *testing.T) {
-	ctx := context.Background()
+func (p *PositionRepositorySuite) SetupSuite() {
+	p.ctx = context.Background()
 
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
+	container, connURI := setupPostgresContainer(p.ctx, p.T())
+	dbPool, err := pgxpool.New(p.ctx, connURI)
+	require.NoError(p.T(), err)
 
+	positionRepo := NewPositionRepository(dbPool)
+
+	p.repo = positionRepo
+	p.container = container
+}
+
+func (p *PositionRepositorySuite) TearDownSuite() {
+	err := p.container.Terminate(p.ctx)
+	if err != nil {
+		p.T().Fatalf("could not terminate postgres container: %v", err.Error())
+	}
+}
+
+func TestPositionRepositorySuite(t *testing.T) {
+	suite.Run(t, new(PositionRepositorySuite))
+}
+
+func (p *PositionRepositorySuite) TestCreatePosition() {
 	positionID := uuid.New()
 	tests := []struct {
 		name    string
@@ -108,33 +119,23 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreatePosition(ctx, tt.request)
-			assert.ErrorIs(t, err, tt.wantErr)
+		p.Run(tt.name, func() {
+			_, err := p.repo.CreatePosition(p.ctx, tt.request)
+			assert.ErrorIs(p.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestPositionRepository_GetPosition(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (p *PositionRepositorySuite) TestGetPosition() {
 	positionID := uuid.New()
 
-	position, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	position, err := p.repo.CreatePosition(p.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 30999,
 	})
 
-	require.NoError(t, err)
+	require.NoError(p.T(), err)
 
 	tests := []struct {
 		name       string
@@ -153,38 +154,28 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetPosition(ctx, tt.positionID)
+		p.Run(tt.name, func() {
+			resp, err := p.repo.GetPosition(p.ctx, tt.positionID)
 			if tt.wantErr != nil {
-				assert.ErrorIs(t, err, tt.wantErr)
-				assert.NotEqual(t, resp, position)
+				assert.ErrorIs(p.T(), err, tt.wantErr)
+				assert.NotEqual(p.T(), resp, position)
 
 				return
 			}
 
-			assert.Equal(t, resp, position)
+			assert.Equal(p.T(), resp, position)
 		})
 	}
 }
 
-func TestPositionRepository_GetPositionList(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (p *PositionRepositorySuite) TestGetPositionList() {
 	for i := 0; i < 10; i++ {
-		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+		_, err := p.repo.CreatePosition(p.ctx, domain.CreatePosition{
 			ID:     uuid.New(),
 			Name:   "Sample",
 			Salary: 30999,
 		})
-		require.NoError(t, err)
+		require.NoError(p.T(), err)
 	}
 
 	var nextCursor string
@@ -213,36 +204,26 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetPositionList(ctx, tt.cursor)
-			assert.ErrorIs(t, err, tt.wantErr)
+		p.Run(tt.name, func() {
+			resp, err := p.repo.GetPositionList(p.ctx, tt.cursor)
+			assert.ErrorIs(p.T(), err, tt.wantErr)
 
-			assert.Equal(t, len(resp.Positions), tt.length)
+			assert.Equal(p.T(), len(resp.Positions), tt.length)
 			nextCursor = resp.Cursor
 		})
 	}
 }
 
-func TestPositionRepository_UpdatePosition(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (p *PositionRepositorySuite) TestUpdatePosition() {
 	positionID := uuid.New()
 
-	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := p.repo.CreatePosition(p.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go developer",
 		Salary: 30999,
 	})
 
-	require.NoError(t, err)
+	require.NoError(p.T(), err)
 
 	tests := []struct {
 		name       string
@@ -270,33 +251,23 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.UpdatePosition(ctx, tt.request)
-			assert.ErrorIs(t, err, tt.wantErr)
+		p.Run(tt.name, func() {
+			_, err := p.repo.UpdatePosition(p.ctx, tt.request)
+			assert.ErrorIs(p.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestPositionRepository_DeletePosition(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (p *PositionRepositorySuite) TestDeletePosition() {
 	positionID := uuid.New()
 
-	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := p.repo.CreatePosition(p.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go developer",
 		Salary: 30999,
 	})
 
-	require.NoError(t, err)
+	require.NoError(p.T(), err)
 
 	tests := []struct {
 		name       string
@@ -314,9 +285,9 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := repo.DeletePosition(ctx, tt.positionID)
-			assert.ErrorIs(t, err, tt.wantErr)
+		p.Run(tt.name, func() {
+			err := p.repo.DeletePosition(p.ctx, tt.positionID)
+			assert.ErrorIs(p.T(), err, tt.wantErr)
 		})
 	}
 }
