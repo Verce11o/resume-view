@@ -1,3 +1,5 @@
+//go:build integration
+
 package mongodb
 
 import (
@@ -10,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -44,31 +47,35 @@ func setupMongoDBContainer(ctx context.Context, t *testing.T) (testcontainers.Co
 	return mongoContainer, connURI + "/?directConnection=true&tls=false"
 }
 
-func setupPositionRepo(ctx context.Context, t *testing.T) (*PositionRepository, testcontainers.Container) {
-	container, connURI := setupMongoDBContainer(ctx, t)
-
-	client, err := mongo.Connect(ctx,
-		options.Client().ApplyURI(connURI),
-		options.Client().SetMaxConnIdleTime(3*time.Second))
-
-	require.NoError(t, err)
-
-	repo := NewPositionRepository(client.Database("employees"))
-
-	return repo, container
+type PositionRepositorySuite struct {
+	suite.Suite
+	ctx       context.Context
+	client    *mongo.Client
+	container testcontainers.Container
+	repo      *PositionRepository
 }
 
-func TestPositionRepository_CreatePosition(t *testing.T) {
-	ctx := context.Background()
+func (s *PositionRepositorySuite) SetupSuite() {
+	s.ctx = context.Background()
+	container, connURI := setupMongoDBContainer(s.ctx, s.T())
 
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+	client, err := mongo.Connect(s.ctx,
+		options.Client().ApplyURI(connURI),
+		options.Client().SetMaxConnIdleTime(3*time.Second))
+	require.NoError(s.T(), err)
 
+	s.repo = NewPositionRepository(client.Database("employees"))
+	s.client = client
+	s.container = container
+}
+
+func (s *PositionRepositorySuite) TearDownSuite() {
+	err := s.container.Terminate(s.ctx)
+	require.NoError(s.T(), err)
+
+}
+
+func (s *PositionRepositorySuite) TestCreatePosition() {
 	positionID := uuid.New()
 
 	tests := []struct {
@@ -96,33 +103,24 @@ func TestPositionRepository_CreatePosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreatePosition(ctx, tt.request)
-			assert.Equal(t, tt.wantErr, err)
+		s.Run(tt.name, func() {
+
+			_, err := s.repo.CreatePosition(s.ctx, tt.request)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestPositionRepository_GetPosition(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *PositionRepositorySuite) TestGetPosition() {
 
 	positionID := uuid.New()
 
-	position, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	position, err := s.repo.CreatePosition(s.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 30999,
 	})
-
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -141,38 +139,28 @@ func TestPositionRepository_GetPosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetPosition(ctx, tt.positionID)
-			if tt.wantErr != nil {
-				assert.ErrorIs(t, err, tt.wantErr)
-				assert.NotEqual(t, resp, position)
+		s.Run(tt.name, func() {
 
+			resp, err := s.repo.GetPosition(s.ctx, tt.positionID)
+			if tt.wantErr != nil {
+				assert.ErrorIs(s.T(), err, tt.wantErr)
+				assert.NotEqual(s.T(), resp, position)
 				return
 			}
-
-			assert.Equal(t, resp, position)
+			assert.Equal(s.T(), resp, position)
 		})
 	}
 }
 
-func TestPositionRepository_GetPositionList(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *PositionRepositorySuite) TestGetPositionList() {
 
 	for i := 0; i < 10; i++ {
-		_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+		_, err := s.repo.CreatePosition(s.ctx, domain.CreatePosition{
 			ID:     uuid.New(),
 			Name:   "Sample",
 			Salary: 30999,
 		})
-		require.NoError(t, err)
+		require.NoError(s.T(), err)
 	}
 
 	var nextCursor string
@@ -201,42 +189,31 @@ func TestPositionRepository_GetPositionList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetPositionList(ctx, tt.cursor)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
 
-			assert.Equal(t, len(resp.Positions), tt.length)
-
+			resp, err := s.repo.GetPositionList(s.ctx, tt.cursor)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.Equal(s.T(), len(resp.Positions), tt.length)
 			nextCursor = resp.Cursor
 		})
 	}
 }
 
-func TestPositionRepository_UpdatePosition(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *PositionRepositorySuite) TestUpdatePosition() {
 
 	positionID := uuid.New()
 
-	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := s.repo.CreatePosition(s.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Sample",
 		Salary: 30999,
 	})
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
-		name       string
-		positionID uuid.UUID
-		request    domain.UpdatePosition
-		wantErr    error
+		name    string
+		request domain.UpdatePosition
+		wantErr error
 	}{
 		{
 			name: "Valid input",
@@ -256,33 +233,26 @@ func TestPositionRepository_UpdatePosition(t *testing.T) {
 			wantErr: customerrors.ErrPositionNotFound,
 		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err = repo.UpdatePosition(ctx, tt.request)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+
+			_, err := s.repo.UpdatePosition(s.ctx, tt.request)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestPositionRepository_DeletePosition(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupPositionRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *PositionRepositorySuite) TestDeletePosition() {
 
 	positionID := uuid.New()
 
-	_, err := repo.CreatePosition(ctx, domain.CreatePosition{
+	_, err := s.repo.CreatePosition(s.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Sample",
 		Salary: 30999,
 	})
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -301,9 +271,14 @@ func TestPositionRepository_DeletePosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err = repo.DeletePosition(ctx, tt.positionID)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+
+			err := s.repo.DeletePosition(s.ctx, tt.positionID)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
+}
+
+func TestPositionRepositorySuite(t *testing.T) {
+	suite.Run(t, new(PositionRepositorySuite))
 }

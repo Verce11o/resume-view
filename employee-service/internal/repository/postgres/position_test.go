@@ -1,3 +1,5 @@
+//go:build integration
+
 package postgres
 
 import (
@@ -86,10 +88,6 @@ func (p *PositionRepositorySuite) TearDownSuite() {
 	if err != nil {
 		p.T().Fatalf("could not terminate postgres container: %v", err.Error())
 	}
-}
-
-func TestPositionRepositorySuite(t *testing.T) {
-	suite.Run(t, new(PositionRepositorySuite))
 }
 
 func (p *PositionRepositorySuite) TestCreatePosition() {
@@ -290,4 +288,8 @@ func (p *PositionRepositorySuite) TestDeletePosition() {
 			assert.ErrorIs(p.T(), err, tt.wantErr)
 		})
 	}
+}
+
+func TestPositionRepositorySuite(t *testing.T) {
+	suite.Run(t, new(PositionRepositorySuite))
 }

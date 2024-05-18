@@ -1,3 +1,5 @@
+//go:build integration
+
 package postgres
 
 import (
@@ -20,8 +22,8 @@ import (
 type EmployeeRepositorySuite struct {
 	suite.Suite
 	ctx          context.Context
+	positionID   uuid.UUID
 	employeeRepo *EmployeeRepository
-	positionRepo *PositionRepository
 	container    *postgres.PostgresContainer
 }
 
@@ -35,8 +37,18 @@ func (s *EmployeeRepositorySuite) SetupSuite() {
 	employeeRepo := NewEmployeeRepository(dbPool)
 	positionRepo := NewPositionRepository(dbPool)
 
+	positionID := uuid.New()
+	s.positionID = positionID
+
+	_, err = positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
+		ID:     positionID,
+		Name:   "Go Developer",
+		Salary: 10999,
+	})
+
+	require.NoError(s.T(), err)
+
 	s.employeeRepo = employeeRepo
-	s.positionRepo = positionRepo
 	s.container = container
 }
 
@@ -47,20 +59,7 @@ func (s *EmployeeRepositorySuite) TearDownSuite() {
 	}
 }
 
-func TestEmployeeRepositorySuite(t *testing.T) {
-	suite.Run(t, new(EmployeeRepositorySuite))
-}
-
 func (s *EmployeeRepositorySuite) TestCreateEmployee() {
-	positionID := uuid.New()
-
-	_, err := s.positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
-		ID:     positionID,
-		Name:   "Go Developer",
-		Salary: 10999,
-	})
-	require.NoError(s.T(), err)
-
 	employeeID := uuid.New()
 
 	tests := []struct {
@@ -72,7 +71,7 @@ func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 			name: "Valid input",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   positionID,
+				PositionID:   s.positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Go Developer",
@@ -83,7 +82,7 @@ func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 			name: "Duplicate employee id",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   positionID,
+				PositionID:   s.positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
@@ -103,18 +102,10 @@ func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 
 func (s *EmployeeRepositorySuite) TestGetEmployee() {
 	employeeID := uuid.New()
-	positionID := uuid.New()
-
-	_, err := s.positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
-		ID:     positionID,
-		Name:   "Go Developer",
-		Salary: 10999,
-	})
-	require.NoError(s.T(), err)
 
 	employee, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "Go Developer",
@@ -155,18 +146,10 @@ func (s *EmployeeRepositorySuite) TestGetEmployee() {
 }
 
 func (s *EmployeeRepositorySuite) TestGetEmployeeList() {
-	positionID := uuid.New()
-	_, err := s.positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
-		ID:     positionID,
-		Name:   "Go Developer",
-		Salary: 10999,
-	})
-	require.NoError(s.T(), err)
-
 	for i := 0; i < 10; i++ {
-		_, err = s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
+		_, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 			EmployeeID:   uuid.New(),
-			PositionID:   positionID,
+			PositionID:   s.positionID,
 			FirstName:    "John",
 			LastName:     "Doe",
 			PositionName: "Go Developer",
@@ -212,19 +195,10 @@ func (s *EmployeeRepositorySuite) TestGetEmployeeList() {
 
 func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 	employeeID := uuid.New()
-	positionID := uuid.New()
 
-	_, err := s.positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
-		ID:     positionID,
-		Name:   "Go Developer",
-		Salary: 10999,
-	})
-
-	require.NoError(s.T(), err)
-
-	_, err = s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
+	_, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "Go developer",
@@ -241,7 +215,7 @@ func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 			name: "Valid input",
 			request: domain.UpdateEmployee{
 				EmployeeID: employeeID,
-				PositionID: positionID,
+				PositionID: s.positionID,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
@@ -260,7 +234,7 @@ func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 			name: "Non-existing employee",
 			request: domain.UpdateEmployee{
 				EmployeeID: uuid.New(),
-				PositionID: positionID,
+				PositionID: s.positionID,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
@@ -278,19 +252,10 @@ func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 
 func (s *EmployeeRepositorySuite) TestDeleteEmployee() {
 	employeeID := uuid.New()
-	positionID := uuid.New()
 
-	_, err := s.positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
-		ID:     positionID,
-		Name:   "Go Developer",
-		Salary: 10999,
-	})
-
-	require.NoError(s.T(), err)
-
-	_, err = s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
+	_, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "Go developer",
@@ -320,4 +285,8 @@ func (s *EmployeeRepositorySuite) TestDeleteEmployee() {
 			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
+}
+
+func TestEmployeeRepositorySuite(t *testing.T) {
+	suite.Run(t, new(EmployeeRepositorySuite))
 }
