@@ -20,6 +20,8 @@ import (
 )
 
 func TestHandler_CreateEmployee(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		employeeService *serviceMock.MockEmployeeService
 		positionService *serviceMock.MockPositionService
@@ -103,6 +105,8 @@ func TestHandler_CreateEmployee(t *testing.T) {
 }
 
 func TestHandler_GetEmployeeByID(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		employeeService *serviceMock.MockEmployeeService
 		positionService *serviceMock.MockPositionService
@@ -184,6 +188,8 @@ func TestHandler_GetEmployeeByID(t *testing.T) {
 }
 
 func TestHandler_GetEmployeeList(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		employeeService *serviceMock.MockEmployeeService
 		positionService *serviceMock.MockPositionService
@@ -270,6 +276,8 @@ func TestHandler_GetEmployeeList(t *testing.T) {
 }
 
 func TestHandler_UpdateEmployeeByID(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		employeeService *serviceMock.MockEmployeeService
 		positionService *serviceMock.MockPositionService
@@ -364,6 +372,8 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 }
 
 func TestHandler_DeleteEmployeeByID(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		employeeService *serviceMock.MockEmployeeService
 		positionService *serviceMock.MockPositionService
