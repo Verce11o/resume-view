@@ -60,31 +60,14 @@ func TestHandler_CreateEmployee(t *testing.T) {
 		},
 	}
 
-	log := zap.NewNop().Sugar()
-
 	for _, tt := range tests {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-
-		ctx.Request = &http.Request{
-			Method: http.MethodPost,
-			Header: make(http.Header),
-		}
+		ctx, w := createTestContext(http.MethodPost, tt.input)
 
 		MockJSONPost(ctx, tt.input)
 
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
+			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
-
-			positionService := serviceMock.NewMockPositionService(ctrl)
-			employeeService := serviceMock.NewMockEmployeeService(ctrl)
-
-			h := &Handler{
-				log:             log,
-				positionService: positionService,
-				employeeService: employeeService,
-			}
 
 			tt.mockFunc(&fields{
 				employeeService: employeeService,
@@ -145,29 +128,12 @@ func TestHandler_GetEmployeeByID(t *testing.T) {
 		},
 	}
 
-	log := zap.NewNop().Sugar()
-
 	for _, tt := range tests {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-
-		ctx.Request = &http.Request{
-			Method: http.MethodGet,
-			Header: make(http.Header),
-		}
+		ctx, w := createTestContext(http.MethodPost, "")
 
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
+			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
-
-			positionService := serviceMock.NewMockPositionService(ctrl)
-			employeeService := serviceMock.NewMockEmployeeService(ctrl)
-
-			h := &Handler{
-				log:             log,
-				positionService: positionService,
-				employeeService: employeeService,
-			}
 
 			tt.mockFunc(&fields{
 				employeeService: employeeService,
@@ -233,29 +199,12 @@ func TestHandler_GetEmployeeList(t *testing.T) {
 		},
 	}
 
-	log := zap.NewNop().Sugar()
-
 	for _, tt := range tests {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-
-		ctx.Request = &http.Request{
-			Method: http.MethodGet,
-			Header: make(http.Header),
-		}
+		ctx, w := createTestContext(http.MethodPost, "")
 
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
+			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
-
-			positionService := serviceMock.NewMockPositionService(ctrl)
-			employeeService := serviceMock.NewMockEmployeeService(ctrl)
-
-			h := &Handler{
-				log:             log,
-				positionService: positionService,
-				employeeService: employeeService,
-			}
 
 			tt.mockFunc(&fields{
 				employeeService: employeeService,
@@ -327,31 +276,14 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 		},
 	}
 
-	log := zap.NewNop().Sugar()
-
 	for _, tt := range tests {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-
-		ctx.Request = &http.Request{
-			Method: http.MethodPut,
-			Header: make(http.Header),
-		}
+		ctx, w := createTestContext(http.MethodPost, tt.input)
 
 		MockJSONPost(ctx, tt.input)
 
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
+			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
-
-			positionService := serviceMock.NewMockPositionService(ctrl)
-			employeeService := serviceMock.NewMockEmployeeService(ctrl)
-
-			h := &Handler{
-				log:             log,
-				positionService: positionService,
-				employeeService: employeeService,
-			}
 
 			tt.mockFunc(&fields{
 				employeeService: employeeService,
@@ -410,29 +342,12 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 		},
 	}
 
-	log := zap.NewNop().Sugar()
-
 	for _, tt := range tests {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-
-		ctx.Request = &http.Request{
-			Method: http.MethodPost,
-			Header: make(http.Header),
-		}
+		ctx, w := createTestContext(http.MethodPost, "")
 
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
+			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
-
-			positionService := serviceMock.NewMockPositionService(ctrl)
-			employeeService := serviceMock.NewMockEmployeeService(ctrl)
-
-			h := &Handler{
-				log:             log,
-				positionService: positionService,
-				employeeService: employeeService,
-			}
 
 			tt.mockFunc(&fields{
 				employeeService: employeeService,
@@ -457,4 +372,33 @@ func MockJSONPost(c *gin.Context, body string) {
 	c.Request.Header.Set("Content-Type", "application/json")
 
 	c.Request.Body = io.NopCloser(bytes.NewBuffer([]byte(body)))
+}
+
+func createTestContext(method, body string) (*gin.Context, *httptest.ResponseRecorder) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request = &http.Request{
+		Method: method,
+		Header: make(http.Header),
+	}
+	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Request.Body = io.NopCloser(bytes.NewBuffer([]byte(body)))
+
+	return ctx, w
+}
+
+func initMocks(t *testing.T) (*gomock.Controller, *serviceMock.MockEmployeeService,
+	*serviceMock.MockPositionService, *Handler) {
+	ctrl := gomock.NewController(t)
+	positionService := serviceMock.NewMockPositionService(ctrl)
+	employeeService := serviceMock.NewMockEmployeeService(ctrl)
+	log := zap.NewNop().Sugar()
+
+	h := &Handler{
+		log:             log,
+		positionService: positionService,
+		employeeService: employeeService,
+	}
+
+	return ctrl, employeeService, positionService, h
 }
