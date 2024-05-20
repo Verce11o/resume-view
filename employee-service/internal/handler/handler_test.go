@@ -1,3 +1,5 @@
+//go:build !integration
+
 package handler
 
 import (
@@ -259,9 +261,17 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 			statusCode: http.StatusOK,
 		},
 		{
-			name:       "Invalid ID",
+			name:       "Invalid employee ID",
 			id:         "invalid",
 			input:      `{"first_name":"NewJohn","last_name":"NewDoe", "position_id":"` + uuid.NewString() + `"}`,
+			response:   models.Employee{},
+			mockFunc:   func(_ *fields) {},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "Invalid position ID",
+			id:         uuid.NewString(),
+			input:      `{"first_name":"NewJohn","last_name":"NewDoe", "position_id":"invalid"`,
 			response:   models.Employee{},
 			mockFunc:   func(_ *fields) {},
 			statusCode: http.StatusBadRequest,

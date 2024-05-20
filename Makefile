@@ -1,4 +1,4 @@
-.PHONY: all build lint test
+.PHONY: all build lint test test-integration
 
 SERVICES = echo-service resume-view employee-service
 
@@ -10,7 +10,10 @@ lint:
 	golangci-lint run
 
 test:
-	go test -v ./...
+	go test -v -covermode=count -coverprofile=coverage.out ./...
+
+test-integration:
+	go test -v -covermode=count -coverprofile=coverage.out --tags integration ./...
 
 gen-proto:
 	protoc -I protos protos/*.proto --go_out=protos/gen/go --go_opt=paths=source_relative --go-grpc_out=protos/gen/go/ --go-grpc_opt=paths=source_relative
