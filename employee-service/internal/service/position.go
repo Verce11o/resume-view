@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.2 --name=PositionRepository
 type PositionRepository interface {
 	CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error)
 	GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error)
@@ -18,6 +19,7 @@ type PositionRepository interface {
 	DeletePosition(ctx context.Context, id uuid.UUID) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.2 --name=PositionCacheRepository
 type PositionCacheRepository interface {
 	GetPosition(ctx context.Context, key string) (*models.Position, error)
 	SetPosition(ctx context.Context, positionID string, position *models.Position) error

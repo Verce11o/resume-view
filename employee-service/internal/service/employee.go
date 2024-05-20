@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.2 --name=EmployeeRepository
 type EmployeeRepository interface {
 	CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error)
 	GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error)
@@ -18,12 +19,14 @@ type EmployeeRepository interface {
 	DeleteEmployee(ctx context.Context, id uuid.UUID) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.2 --name=EmployeeCacheRepository
 type EmployeeCacheRepository interface {
 	GetEmployee(ctx context.Context, key string) (*models.Employee, error)
 	SetEmployee(ctx context.Context, employeeID string, employee *models.Employee) error
 	DeleteEmployee(ctx context.Context, employeeID string) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.2 --name=Transactor
 type Transactor interface {
 	WithTransaction(context.Context, func(ctx context.Context) error) error
 }
