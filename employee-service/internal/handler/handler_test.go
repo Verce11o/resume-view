@@ -63,7 +63,7 @@ func TestHandler_CreateEmployee(t *testing.T) {
 	for _, tt := range tests {
 		ctx, w := createTestContext(http.MethodPost, tt.input)
 
-		MockJSONPost(ctx, tt.input)
+		MockJSONRequest(ctx, tt.input, http.MethodPost)
 
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
@@ -277,9 +277,9 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, tt.input)
+		ctx, w := createTestContext(http.MethodPut, tt.input)
 
-		MockJSONPost(ctx, tt.input)
+		MockJSONRequest(ctx, tt.input, http.MethodPut)
 
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
@@ -367,8 +367,356 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 	}
 }
 
-func MockJSONPost(c *gin.Context, body string) {
-	c.Request.Method = "POST"
+func TestHandler_CreatePosition(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		employeeService *serviceMock.MockEmployeeService
+		positionService *serviceMock.MockPositionService
+	}
+
+	tests := []struct {
+		name       string
+		input      string
+		response   any
+		mockFunc   func(f *fields)
+		statusCode int
+		err        error
+	}{
+		{
+			name:  "Valid Input",
+			input: `{"name": "Go Developer", "salary": 30999}`,
+			response: models.Position{
+				Name:   "Go Developer",
+				Salary: 30999,
+			},
+			mockFunc: func(f *fields) {
+				f.positionService.EXPECT().CreatePosition(gomock.Any(), gomock.Any()).
+					Return(models.Position{
+						Name:   "Go Developer",
+						Salary: 30999,
+					}, nil)
+			},
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "Invalid Input",
+			input:      `{"name": "Go Developer", "pay_amount": 30999}`,
+			response:   models.Position{},
+			mockFunc:   func(_ *fields) {},
+			statusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		ctx, w := createTestContext(http.MethodPost, tt.input)
+
+		MockJSONRequest(ctx, tt.input, http.MethodPost)
+
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl, employeeService, positionService, h := initMocks(t)
+			defer ctrl.Finish()
+
+			tt.mockFunc(&fields{
+				employeeService: employeeService,
+				positionService: positionService,
+			})
+
+			h.CreatePosition(ctx)
+			assert.EqualValues(t, tt.statusCode, w.Code)
+
+			if tt.response != nil {
+				var responseBody models.Position
+				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tt.response, responseBody)
+			}
+		})
+	}
+}
+
+func TestHandler_GetPositionByID(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		employeeService *serviceMock.MockEmployeeService
+		positionService *serviceMock.MockPositionService
+	}
+
+	tests := []struct {
+		name       string
+		id         string
+		response   any
+		mockFunc   func(f *fields)
+		statusCode int
+		err        error
+	}{
+		{
+			name: "Valid ID",
+			id:   uuid.New().String(),
+			response: models.Position{
+				Name:   "Go Developer",
+				Salary: 30999,
+			},
+			mockFunc: func(f *fields) {
+				f.positionService.EXPECT().GetPosition(gomock.Any(), gomock.Any()).
+					Return(models.Position{
+						Name:   "Go Developer",
+						Salary: 30999,
+					}, nil)
+			},
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "Invalid ID",
+			id:         "invalid",
+			response:   models.Position{},
+			mockFunc:   func(_ *fields) {},
+			statusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		ctx, w := createTestContext(http.MethodGet, "")
+
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl, employeeService, positionService, h := initMocks(t)
+			defer ctrl.Finish()
+
+			tt.mockFunc(&fields{
+				employeeService: employeeService,
+				positionService: positionService,
+			})
+
+			h.GetPositionByID(ctx, tt.id)
+			assert.EqualValues(t, tt.statusCode, w.Code)
+
+			if tt.response != nil {
+				var responseBody models.Position
+				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tt.response, responseBody)
+			}
+		})
+	}
+}
+
+func TestHandler_GetPositionList(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		employeeService *serviceMock.MockEmployeeService
+		positionService *serviceMock.MockPositionService
+	}
+
+	cursor := ""
+	positions := []models.Position{
+		{
+			Name:   "Go Developer",
+			Salary: 30999,
+		},
+		{
+			Name:   "Python developer",
+			Salary: 20845,
+		},
+	}
+
+	tests := []struct {
+		name       string
+		cursor     *string
+		response   any
+		mockFunc   func(f *fields)
+		statusCode int
+		err        error
+	}{
+		{
+			name:   "Valid empty cursor",
+			cursor: &cursor,
+			response: models.PositionList{
+				Cursor:    "example",
+				Positions: positions,
+			},
+			mockFunc: func(f *fields) {
+				f.positionService.EXPECT().GetPositionList(gomock.Any(), gomock.Any()).
+					Return(models.PositionList{
+						Cursor:    "example",
+						Positions: positions,
+					}, nil)
+			},
+			statusCode: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		ctx, w := createTestContext(http.MethodGet, "")
+
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl, employeeService, positionService, h := initMocks(t)
+			defer ctrl.Finish()
+
+			tt.mockFunc(&fields{
+				employeeService: employeeService,
+				positionService: positionService,
+			})
+
+			h.GetPositionList(ctx, api.GetPositionListParams{Cursor: tt.cursor})
+			assert.EqualValues(t, tt.statusCode, w.Code)
+
+			if tt.response != nil {
+				var responseBody models.PositionList
+				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tt.response, responseBody)
+			}
+		})
+	}
+}
+
+func TestHandler_UpdatePosition(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		employeeService *serviceMock.MockEmployeeService
+		positionService *serviceMock.MockPositionService
+	}
+
+	tests := []struct {
+		name       string
+		id         string
+		input      string
+		response   any
+		mockFunc   func(f *fields)
+		statusCode int
+		err        error
+	}{
+		{
+			name:  "Valid Input",
+			id:    uuid.NewString(),
+			input: `{"name":"NewGoDeveloper", "salary": 30999}`,
+			response: models.Position{
+				Name:   "NewGoDeveloper",
+				Salary: 30999,
+			},
+			mockFunc: func(f *fields) {
+				f.positionService.EXPECT().UpdatePosition(gomock.Any(), gomock.Any()).
+					Return(models.Position{
+						Name:   "NewGoDeveloper",
+						Salary: 30999,
+					}, nil)
+			},
+			statusCode: http.StatusOK,
+		},
+		{
+			name:       "Invalid ID",
+			id:         "invalid",
+			input:      `{"name":"NewGoDeveloper", "salary": 30999}`,
+			response:   models.Position{},
+			mockFunc:   func(_ *fields) {},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "Invalid input",
+			id:         uuid.NewString(),
+			input:      `{"positionName":"NewGoDeveloper", "pay_amount": 30999}`,
+			response:   models.Position{},
+			mockFunc:   func(_ *fields) {},
+			statusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		ctx, w := createTestContext(http.MethodPut, tt.input)
+
+		MockJSONRequest(ctx, tt.input, http.MethodPut)
+
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl, employeeService, positionService, h := initMocks(t)
+			defer ctrl.Finish()
+
+			tt.mockFunc(&fields{
+				employeeService: employeeService,
+				positionService: positionService,
+			})
+
+			h.UpdatePositionByID(ctx, tt.id)
+			assert.EqualValues(t, tt.statusCode, w.Code)
+
+			if tt.response != nil {
+				var responseBody models.Position
+				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tt.response, responseBody)
+			}
+		})
+	}
+}
+
+func TestHandler_DeletePositionByID(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		employeeService *serviceMock.MockEmployeeService
+		positionService *serviceMock.MockPositionService
+	}
+
+	tests := []struct {
+		name       string
+		id         string
+		response   any
+		mockFunc   func(f *fields)
+		statusCode int
+		err        error
+	}{
+		{
+			name: "Valid ID",
+			id:   uuid.NewString(),
+			response: gin.H{
+				"message": "success",
+			},
+			mockFunc: func(f *fields) {
+				f.positionService.EXPECT().DeletePosition(gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			statusCode: http.StatusOK,
+		},
+		{
+			name: "Invalid ID",
+			id:   "invalid",
+			response: gin.H{
+				"message": errors.New("invalid UUID length: 7").Error(),
+			},
+			mockFunc:   func(_ *fields) {},
+			statusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		ctx, w := createTestContext(http.MethodPost, "")
+
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl, employeeService, positionService, h := initMocks(t)
+			defer ctrl.Finish()
+
+			tt.mockFunc(&fields{
+				employeeService: employeeService,
+				positionService: positionService,
+			})
+
+			h.DeletePositionByID(ctx, tt.id)
+			assert.EqualValues(t, tt.statusCode, w.Code)
+
+			if tt.response != nil {
+				var responseBody gin.H
+				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tt.response, responseBody)
+			}
+		})
+	}
+}
+
+func MockJSONRequest(c *gin.Context, body string, method string) {
+	c.Request.Method = method
 	c.Request.Header.Set("Content-Type", "application/json")
 
 	c.Request.Body = io.NopCloser(bytes.NewBuffer([]byte(body)))
