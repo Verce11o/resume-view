@@ -1,6 +1,6 @@
 .PHONY: all build lint test
 
-SERVICES = echo-service resume-view
+SERVICES = echo-service resume-view employee-service
 
 
 build: $(SERVICES)

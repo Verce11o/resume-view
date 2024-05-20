@@ -11,6 +11,5 @@ lint:
 
 build:
 	go build -o resume-view -v cmd/main.go
-	docker build . -t resume-view
 
 all: test format lint build

@@ -11,6 +11,7 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,18 +28,29 @@ func NewPositionRepository(db *pgxpool.Pool) *PositionRepository {
 }
 
 func (p *PositionRepository) CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error) {
+	var (
+		pgErr *pgconn.PgError
+		rows  pgx.Rows
+		err   error
+	)
+
 	q := "INSERT INTO positions(id, name, salary) VALUES ($1, $2, $3) RETURNING id, name, salary, created_at, updated_at"
-	row, err := p.db.Query(ctx, q, req.ID, req.Name, req.Salary)
+
+	tx := extractTx(ctx)
+
+	if tx != nil {
+		rows, err = tx.Query(ctx, q, req.ID, req.Name, req.Salary)
+	} else {
+		rows, err = p.db.Query(ctx, q, req.ID, req.Name, req.Salary)
+	}
 
 	if err != nil {
 		return models.Position{}, fmt.Errorf("create position: %w", err)
 	}
 
-	position, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Position])
+	position, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Position])
 
-	var pgErr *pgconn.PgError
-
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		return models.Position{}, customerrors.ErrDuplicateID
 	}
 

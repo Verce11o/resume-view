@@ -1,10 +1,11 @@
 package models
 
 import (
+	"time"
+
 	pb "github.com/Verce11o/resume-view/protos/gen/go"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 type View struct {
@@ -34,6 +35,7 @@ func (v *ViewList) ToProto() *pb.GetResumeViewsResponse {
 	for _, val := range v.Views {
 		views = append(views, val.ToProto())
 	}
+
 	return &pb.GetResumeViewsResponse{
 		Views:  views,
 		Cursor: v.Cursor,

@@ -11,6 +11,7 @@ import (
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/pagination"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,7 +20,7 @@ import (
 const employeeLimit = 5
 
 type EmployeeRepository struct {
-	db *pgxpool.Pool
+	db *pgxpool.Pool // возможно, в transactor создать методы query, exec итд чтобы не пришлось изменять ко
 }
 
 func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
@@ -27,31 +28,22 @@ func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
 }
 
 func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return models.Employee{}, fmt.Errorf("start transaction: %w", err)
-	}
-
-	defer tx.Rollback(ctx) //nolint:errcheck
-
-	var pgErr *pgconn.PgError
-
-	createPositionQuery := "INSERT INTO positions (id, name, salary) VALUES ($1, $2, $3)"
-
-	_, err = tx.Exec(ctx, createPositionQuery, req.PositionID, req.PositionName, req.Salary)
-
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return models.Employee{}, customerrors.ErrDuplicateID
-	}
-
-	if err != nil {
-		return models.Employee{}, fmt.Errorf("inserting position: %w", err)
-	}
+	var (
+		pgErr *pgconn.PgError
+		rows  pgx.Rows
+		err   error
+	)
 
 	createEmployeeQuery := `INSERT INTO employees(id, first_name, last_name, position_id) VALUES ($1, $2, $3, $4) 
                                         RETURNING id, first_name, last_name, position_id,  created_at, updated_at`
 
-	rows, err := tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	tx := extractTx(ctx)
+
+	if tx != nil {
+		rows, err = tx.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	} else {
+		rows, err = p.db.Query(ctx, createEmployeeQuery, req.EmployeeID, req.FirstName, req.LastName, req.PositionID)
+	}
 
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("inserting employee: %w", err)
@@ -59,16 +51,12 @@ func (p *EmployeeRepository) CreateEmployee(ctx context.Context, req domain.Crea
 
 	employee, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Employee])
 
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		return models.Employee{}, customerrors.ErrDuplicateID
 	}
 
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("decode employee: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return models.Employee{}, fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return employee, nil

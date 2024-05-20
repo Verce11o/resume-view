@@ -1,14 +1,16 @@
 package logger
 
 import (
+	"strings"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strings"
 )
 
 func NewProdLogger() *zap.SugaredLogger {
 	log, _ := zap.NewProduction()
 	defer log.Sync()
+
 	return log.Sugar()
 }
 

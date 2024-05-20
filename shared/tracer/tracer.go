@@ -2,6 +2,8 @@ package tracer
 
 import (
 	"context"
+	"fmt"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -17,19 +19,24 @@ type JaegerTracing struct {
 }
 
 func NewJaegerExporter(ctx context.Context, endpoint string) (tracesdk.SpanExporter, error) {
-	return otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure(), otlptracegrpc.WithEndpoint(endpoint))
+	spanExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure(), otlptracegrpc.WithEndpoint(endpoint))
+	if err != nil {
+		return nil, fmt.Errorf("otlptracegrpc.New: %w", err)
+	}
+
+	return spanExporter, nil
 }
 
-func NewTraceProvider(exp tracesdk.SpanExporter, ServiceName string) (*tracesdk.TracerProvider, error) {
+func NewTraceProvider(exp tracesdk.SpanExporter, serviceName string) (*tracesdk.TracerProvider, error) {
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(ServiceName),
+			semconv.ServiceNameKey.String(serviceName),
 		),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resource.Merge: %w", err)
 	}
 
 	return tracesdk.NewTracerProvider(
@@ -41,12 +48,12 @@ func NewTraceProvider(exp tracesdk.SpanExporter, ServiceName string) (*tracesdk.
 func InitTracer(ctx context.Context, serviceName, endpoint string) (*JaegerTracing, error) {
 	exporter, err := NewJaegerExporter(ctx, endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewJaegerExporter: %w", err)
 	}
 
 	tp, err := NewTraceProvider(exporter, serviceName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewTraceProvider: %w", err)
 	}
 
 	otel.SetTracerProvider(tp)

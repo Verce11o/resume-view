@@ -5,17 +5,24 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
+	"github.com/Verce11o/resume-view/employee-service/internal/repository/mongodb"
+	"github.com/Verce11o/resume-view/employee-service/internal/repository/postgres"
+	"github.com/Verce11o/resume-view/employee-service/internal/repository/redis"
 	"github.com/Verce11o/resume-view/employee-service/internal/server"
+	"github.com/Verce11o/resume-view/employee-service/internal/service"
 	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
 	redisLib "github.com/Verce11o/resume-view/shared/db/redis"
-	"github.com/jackc/pgx/v5/pgxpool"
-	mongoDriver "go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
+)
+
+const (
+	mainPostgres      = "postgres"
+	mainMongodb       = "mongodb"
+	mongoMainDatabase = "employees"
 )
 
 type App struct {
@@ -25,39 +32,13 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, error) {
-	var (
-		db    *pgxpool.Pool
-		mongo *mongoDriver.Client
-		err   error
-	)
-
-	if strings.ToLower(cfg.MainDatabase) == "postgres" {
-		db, err = postgresLib.New(ctx, postgresLib.Config{
-			User:     cfg.Postgres.User,
-			Password: cfg.Postgres.Password,
-			Host:     cfg.Postgres.Host,
-			Port:     cfg.Postgres.Port,
-			Database: cfg.Postgres.Name,
-			SSLMode:  cfg.Postgres.SSLMode,
-		})
-	}
-
-	if strings.ToLower(cfg.MainDatabase) == "mongo" {
-		mongo, err = mongoLib.New(ctx, mongoLib.Config{
-			Host:       cfg.MongoDB.Host,
-			Port:       cfg.MongoDB.Port,
-			User:       cfg.MongoDB.User,
-			Password:   cfg.MongoDB.Password,
-			Database:   cfg.MongoDB.Name,
-			ReplicaSet: cfg.MongoDB.ReplicaSet,
-		})
-	}
+	employeeRepo, positionRepo, transactor, err := initRepos(ctx, cfg)
 
 	if err != nil {
-		return nil, fmt.Errorf("could not connect to database: %w", err)
+		return nil, fmt.Errorf("init repos: %w", err)
 	}
 
-	redis, err := redisLib.New(ctx, redisLib.Config{
+	redisClient, err := redisLib.New(ctx, redisLib.Config{
 		Host:     cfg.Redis.Host,
 		Port:     cfg.Redis.Port,
 		Password: cfg.Redis.Password,
@@ -68,7 +49,13 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		return nil, fmt.Errorf("could not connect to redis: %w", err)
 	}
 
-	srv := server.NewServer(log, db, mongo, redis, cfg)
+	employeeCache := redis.NewEmployeeCache(redisClient)
+	positionCache := redis.NewPositionCache(redisClient)
+
+	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor)
+	positionService := service.NewPositionService(log, positionRepo, positionCache)
+
+	srv := server.NewServer(log, employeeService, positionService, cfg)
 
 	return &App{
 		cfg: cfg,
@@ -103,4 +90,46 @@ func (a *App) Stop(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func initRepos(ctx context.Context, cfg config.Config) (
+	service.EmployeeRepository, service.PositionRepository, service.Transactor, error) {
+	switch cfg.MainDatabase {
+	case mainPostgres:
+		db, err := postgresLib.New(ctx, postgresLib.Config{
+			User:     cfg.Postgres.User,
+			Password: cfg.Postgres.Password,
+			Host:     cfg.Postgres.Host,
+			Port:     cfg.Postgres.Port,
+			Database: cfg.Postgres.Name,
+			SSLMode:  cfg.Postgres.SSLMode,
+		})
+
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
+		}
+
+		return postgres.NewEmployeeRepository(db), postgres.NewPositionRepository(db), postgres.NewTransactor(db), nil
+
+	case mainMongodb:
+		mongo, err := mongoLib.New(ctx, mongoLib.Config{
+			Host:       cfg.MongoDB.Host,
+			Port:       cfg.MongoDB.Port,
+			User:       cfg.MongoDB.User,
+			Password:   cfg.MongoDB.Password,
+			Database:   cfg.MongoDB.Name,
+			ReplicaSet: cfg.MongoDB.ReplicaSet,
+		})
+
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to connect to mongodb: %w", err)
+		}
+
+		db := mongo.Database(mongoMainDatabase)
+
+		return mongodb.NewEmployeeRepository(db), mongodb.NewPositionRepository(db), mongodb.NewTransactor(mongo), nil
+
+	default:
+		return nil, nil, nil, fmt.Errorf("unknown database type: %s", cfg.MainDatabase)
+	}
 }

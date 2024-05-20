@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"github.com/Verce11o/resume-view/echo-service/internal/clients/grpc"
-	"github.com/Verce11o/resume-view/echo-service/internal/config"
-	pb "github.com/Verce11o/resume-view/protos/gen/go"
 	"log/slog"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/Verce11o/resume-view/echo-service/internal/clients/grpc"
+	"github.com/Verce11o/resume-view/echo-service/internal/config"
+	pb "github.com/Verce11o/resume-view/protos/gen/go"
 )
 
 func main() {
@@ -31,6 +32,7 @@ func main() {
 	ticker := time.NewTicker(5 * time.Second)
 
 	slog.Info("Starting view client")
+
 	for {
 		select {
 		case <-ticker.C:
@@ -38,10 +40,10 @@ func main() {
 			slog.Info("Total views amount: ", "views", resp.GetTotal())
 		case <-ctx.Done():
 			slog.Info("Stopping echo-service")
+
 			return
 		}
 	}
-
 }
 
 func parseLogLevel(level string) slog.Level {

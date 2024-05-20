@@ -3,17 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
+	"net"
+
 	"github.com/Verce11o/resume-view/resume-view/internal/config"
 	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/grpc"
-	"github.com/Verce11o/resume-view/resume-view/internal/lib/tracer"
 	"github.com/Verce11o/resume-view/resume-view/internal/repositories"
 	"github.com/Verce11o/resume-view/resume-view/internal/services"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
+	"github.com/Verce11o/resume-view/shared/tracer"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type App struct {
@@ -25,7 +26,7 @@ type App struct {
 func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App, error) {
 	trace, err := tracer.InitTracer(ctx, "view service", cfg.Jaeger.Endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to init tracer: %w", err)
 	}
 
 	db, err := postgresLib.New(ctx, postgresLib.Config{
@@ -37,7 +38,7 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 		SSLMode:  cfg.DB.SSLMode,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to init db: %w", err)
 	}
 
 	repo := repositories.NewViewRepository(db, trace)
@@ -64,11 +65,11 @@ func (a *App) Run() error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", a.cfg.Server.Port))
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to listen tcp: %w", err)
 	}
 
 	if err := a.grpcServer.Serve(l); err != nil {
-		return err
+		return fmt.Errorf("failed to serve grpc: %w", err)
 	}
 
 	return nil

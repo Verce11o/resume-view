@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/Verce11o/resume-view/resume-view/internal/app"
-	"github.com/Verce11o/resume-view/resume-view/internal/config"
-	"github.com/Verce11o/resume-view/shared/logger"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/Verce11o/resume-view/resume-view/internal/app"
+	"github.com/Verce11o/resume-view/resume-view/internal/config"
+	"github.com/Verce11o/resume-view/shared/logger"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 
 	if err != nil {
 		log.Errorf("Failed to initialize application: %v", err)
+
 		return
 	}
 
@@ -38,5 +40,4 @@ func main() {
 	<-quit
 
 	application.Stop()
-
 }

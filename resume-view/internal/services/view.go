@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/Verce11o/resume-view/resume-view/internal/models"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/codes"
@@ -32,7 +34,8 @@ func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return uuid.Nil, err
+
+		return uuid.Nil, fmt.Errorf("failed to create view: %w", err)
 	}
 
 	return viewID, nil
@@ -46,7 +49,8 @@ func (v *ViewService) ListResumeView(ctx context.Context, cursor, resumeID strin
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return models.ViewList{}, err
+
+		return models.ViewList{}, fmt.Errorf("failed to list resume views: %w", err)
 	}
 
 	return viewList, nil
