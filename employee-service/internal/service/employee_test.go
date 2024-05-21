@@ -98,6 +98,41 @@ func TestEmployeeService_CreateEmployee(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Invalid employee ID",
+			input: domain.CreateEmployee{
+				EmployeeID:   uuid.Nil,
+				PositionID:   positionID,
+				FirstName:    "John",
+				LastName:     "Doe",
+				PositionName: "Go Developer",
+				Salary:       30999,
+			},
+			response: models.Employee{},
+			mockFunc: func(f *fields) {
+				f.transactor.On("WithTransaction", mock.Anything, mock.Anything).
+					Return(assert.AnError).Run(func(args mock.Arguments) {
+					fn := args.Get(1).(func(ctx context.Context) error)
+					assert.Error(t, fn(context.TODO()))
+				})
+
+				f.positionRepo.On("CreatePosition", mock.Anything, mock.AnythingOfType("domain.CreatePosition")).
+					Return(models.Position{
+						ID:     positionID,
+						Name:   "Go Developer",
+						Salary: 30999,
+					}, nil)
+
+				f.employeeRepo.On("CreateEmployee", mock.Anything, mock.AnythingOfType("domain.CreateEmployee")).
+					Return(models.Employee{
+						ID:         employeeID,
+						FirstName:  "John",
+						LastName:   "Doe",
+						PositionID: positionID,
+					}, assert.AnError)
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
