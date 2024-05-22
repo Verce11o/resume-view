@@ -1,3 +1,5 @@
+//go:build integration
+
 package redis
 
 import (
@@ -11,32 +13,40 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	redisContainer "github.com/testcontainers/testcontainers-go/modules/redis"
 )
 
-func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeCache, *redisContainer.RedisContainer) {
-	container, connURI := setupRedisContainer(ctx, t)
+type EmployeeCacheSuite struct {
+	suite.Suite
+	ctx       context.Context
+	client    *redis.Client
+	container *redisContainer.RedisContainer
+	repo      *EmployeeCache
+}
+
+func (s *EmployeeCacheSuite) SetupSuite() {
+	s.ctx = context.Background()
+	container, connURI := setupRedisContainer(s.ctx, s.T())
 
 	client := redis.NewClient(&redis.Options{
 		Addr: connURI,
 	})
 
-	employeeCacheRepo := NewEmployeeCache(client)
-
-	return employeeCacheRepo, container
+	s.client = client
+	s.repo = NewEmployeeCache(client)
+	s.container = container
 }
 
-func TestEmployeeCache_SetEmployee(t *testing.T) {
-	ctx := context.Background()
+func (s *EmployeeCacheSuite) TearDownSuite() {
+	err := s.container.Terminate(s.ctx)
+	require.NoError(s.T(), err)
 
-	repo, container := setupEmployeeRepo(ctx, t)
+	err = s.client.Close()
+	require.NoError(s.T(), err)
+}
 
-	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate redis container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeCacheSuite) TestSetEmployee() {
 
 	employeeID := uuid.New().String()
 
@@ -44,7 +54,7 @@ func TestEmployeeCache_SetEmployee(t *testing.T) {
 		name       string
 		employeeID string
 		employee   *models.Employee
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -61,32 +71,19 @@ func TestEmployeeCache_SetEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := repo.SetEmployee(ctx, tt.employeeID, tt.employee)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+		s.Run(tt.name, func() {
+
+			err := s.repo.SetEmployee(s.ctx, tt.employeeID, tt.employee)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestEmployeeCache_GetEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-
-	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate redis container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeCacheSuite) TestGetEmployee() {
 
 	employeeID := uuid.New()
 
-	err := repo.SetEmployee(ctx, employeeID.String(), &models.Employee{
+	err := s.repo.SetEmployee(s.ctx, employeeID.String(), &models.Employee{
 		ID:        employeeID,
 		FirstName: "John",
 		LastName:  "Doe",
@@ -94,7 +91,7 @@ func TestEmployeeCache_GetEmployee(t *testing.T) {
 		UpdatedAt: time.Now().UTC(),
 	})
 
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -113,28 +110,19 @@ func TestEmployeeCache_GetEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.GetEmployee(ctx, tt.employeeID)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+
+			_, err := s.repo.GetEmployee(s.ctx, tt.employeeID)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestEmployeeCache_DeleteEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-
-	defer func(container *redisContainer.RedisContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate redis container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeCacheSuite) TestDeleteEmployee() {
 
 	employeeID := uuid.New()
 
-	err := repo.SetEmployee(ctx, employeeID.String(), &models.Employee{
+	err := s.repo.SetEmployee(s.ctx, employeeID.String(), &models.Employee{
 		ID:         employeeID,
 		FirstName:  "John",
 		LastName:   "Doe",
@@ -143,7 +131,7 @@ func TestEmployeeCache_DeleteEmployee(t *testing.T) {
 		UpdatedAt:  time.Now().UTC(),
 	})
 
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -157,9 +145,14 @@ func TestEmployeeCache_DeleteEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := repo.DeleteEmployee(ctx, tt.employeeID)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+
+			err := s.repo.DeleteEmployee(s.ctx, tt.employeeID)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
+}
+
+func TestEmployeeCacheSuite(t *testing.T) {
+	suite.Run(t, new(EmployeeCacheSuite))
 }

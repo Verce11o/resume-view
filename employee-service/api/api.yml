@@ -324,12 +324,20 @@ components:
       properties:
         first_name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         last_name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         position_name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         salary:
           type: integer
+          x-oapi-codegen-extra-tags:
+            binding: required
 
       required:
         - first_name
@@ -343,10 +351,16 @@ components:
       properties:
         first_name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         last_name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         position_id:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
       required:
         - first_name
         - last_name
@@ -358,8 +372,12 @@ components:
       properties:
         name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         salary:
           type: integer
+          x-oapi-codegen-extra-tags:
+            binding: required
       required:
         - name
         - salary
@@ -369,8 +387,12 @@ components:
       properties:
         name:
           type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
         salary:
           type: integer
+          x-oapi-codegen-extra-tags:
+            binding: required
       required:
         - name
         - salary
