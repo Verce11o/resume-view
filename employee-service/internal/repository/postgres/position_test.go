@@ -10,6 +10,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
+	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	_ "github.com/flashlabs/rootpath"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -93,13 +94,19 @@ func (p *PositionRepositorySuite) TearDownSuite() {
 func (p *PositionRepositorySuite) TestCreatePosition() {
 	positionID := uuid.New()
 	tests := []struct {
-		name    string
-		request domain.CreatePosition
-		wantErr error
+		name     string
+		request  domain.CreatePosition
+		response models.Position
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
 			request: domain.CreatePosition{
+				ID:     positionID,
+				Name:   "Python Developer",
+				Salary: 30999,
+			},
+			response: models.Position{
 				ID:     positionID,
 				Name:   "Python Developer",
 				Salary: 30999,
@@ -112,14 +119,16 @@ func (p *PositionRepositorySuite) TestCreatePosition() {
 				Name:   "Golang Developer",
 				Salary: 33333,
 			},
-			wantErr: customerrors.ErrDuplicateID,
+			response: models.Position{},
+			wantErr:  customerrors.ErrDuplicateID,
 		},
 	}
 
 	for _, tt := range tests {
 		p.Run(tt.name, func() {
-			_, err := p.repo.CreatePosition(p.ctx, tt.request)
+			resp, err := p.repo.CreatePosition(p.ctx, tt.request)
 			assert.ErrorIs(p.T(), err, tt.wantErr)
+			assert.EqualExportedValues(p.T(), tt.response, resp)
 		})
 	}
 }
@@ -227,11 +236,17 @@ func (p *PositionRepositorySuite) TestUpdatePosition() {
 		name       string
 		positionID uuid.UUID
 		request    domain.UpdatePosition
+		response   models.Position
 		wantErr    error
 	}{
 		{
 			name: "Valid input",
 			request: domain.UpdatePosition{
+				ID:     positionID,
+				Name:   "Python Developer",
+				Salary: 30999,
+			},
+			response: models.Position{
 				ID:     positionID,
 				Name:   "Python Developer",
 				Salary: 30999,
@@ -250,8 +265,9 @@ func (p *PositionRepositorySuite) TestUpdatePosition() {
 
 	for _, tt := range tests {
 		p.Run(tt.name, func() {
-			_, err := p.repo.UpdatePosition(p.ctx, tt.request)
+			resp, err := p.repo.UpdatePosition(p.ctx, tt.request)
 			assert.ErrorIs(p.T(), err, tt.wantErr)
+			assert.EqualExportedValues(p.T(), tt.response, resp)
 		})
 	}
 }
@@ -286,6 +302,11 @@ func (p *PositionRepositorySuite) TestDeletePosition() {
 		p.Run(tt.name, func() {
 			err := p.repo.DeletePosition(p.ctx, tt.positionID)
 			assert.ErrorIs(p.T(), err, tt.wantErr)
+
+			if tt.wantErr != nil {
+				_, err = p.repo.GetPosition(p.ctx, tt.positionID)
+				assert.ErrorIs(p.T(), err, customerrors.ErrPositionNotFound)
+			}
 		})
 	}
 }

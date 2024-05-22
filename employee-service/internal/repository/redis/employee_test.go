@@ -54,7 +54,7 @@ func (s *EmployeeCacheSuite) TestSetEmployee() {
 		name       string
 		employeeID string
 		employee   *models.Employee
-		wantErr    bool
+		wantErr    error
 	}{
 		{
 			name:       "Valid input",
@@ -74,11 +74,7 @@ func (s *EmployeeCacheSuite) TestSetEmployee() {
 		s.Run(tt.name, func() {
 
 			err := s.repo.SetEmployee(s.ctx, tt.employeeID, tt.employee)
-			if tt.wantErr {
-				assert.Error(s.T(), err)
-			} else {
-				assert.NoError(s.T(), err)
-			}
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
 }

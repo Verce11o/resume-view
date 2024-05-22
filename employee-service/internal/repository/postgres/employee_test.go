@@ -8,6 +8,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
+	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	_ "github.com/flashlabs/rootpath"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -63,9 +64,10 @@ func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 	employeeID := uuid.New()
 
 	tests := []struct {
-		name    string
-		request domain.CreateEmployee
-		wantErr error
+		name     string
+		request  domain.CreateEmployee
+		response models.Employee
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
@@ -76,6 +78,12 @@ func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 				LastName:     "Doe",
 				PositionName: "Go Developer",
 				Salary:       12345,
+			},
+			response: models.Employee{
+				ID:         employeeID,
+				PositionID: s.positionID,
+				FirstName:  "John",
+				LastName:   "Doe",
 			},
 		},
 		{
@@ -88,14 +96,16 @@ func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 				PositionName: "Python Developer",
 				Salary:       12345,
 			},
-			wantErr: customerrors.ErrDuplicateID,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrDuplicateID,
 		},
 	}
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			_, err := s.employeeRepo.CreateEmployee(s.ctx, tt.request)
+			resp, err := s.employeeRepo.CreateEmployee(s.ctx, tt.request)
 			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.EqualExportedValues(s.T(), tt.response, resp)
 		})
 	}
 }
@@ -207,14 +217,21 @@ func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 	require.NoError(s.T(), err)
 
 	tests := []struct {
-		name    string
-		request domain.UpdateEmployee
-		wantErr error
+		name     string
+		request  domain.UpdateEmployee
+		response models.Employee
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
 			request: domain.UpdateEmployee{
 				EmployeeID: employeeID,
+				PositionID: s.positionID,
+				FirstName:  "NewName",
+				LastName:   "NewLastName",
+			},
+			response: models.Employee{
+				ID:         employeeID,
 				PositionID: s.positionID,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
@@ -228,7 +245,8 @@ func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
-			wantErr: customerrors.ErrPositionNotFound,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrPositionNotFound,
 		},
 		{
 			name: "Non-existing employee",
@@ -238,14 +256,16 @@ func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
-			wantErr: customerrors.ErrEmployeeNotFound,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrEmployeeNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			_, err := s.employeeRepo.UpdateEmployee(s.ctx, tt.request)
+			resp, err := s.employeeRepo.UpdateEmployee(s.ctx, tt.request)
 			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.EqualExportedValues(s.T(), tt.response, resp)
 		})
 	}
 }
@@ -283,6 +303,11 @@ func (s *EmployeeRepositorySuite) TestDeleteEmployee() {
 		s.Run(tt.name, func() {
 			err := s.employeeRepo.DeleteEmployee(s.ctx, tt.employeeID)
 			assert.ErrorIs(s.T(), err, tt.wantErr)
+
+			if tt.wantErr != nil {
+				_, err = s.employeeRepo.GetEmployee(s.ctx, employeeID)
+				assert.ErrorIs(s.T(), err, customerrors.ErrEmployeeNotFound)
+			}
 		})
 	}
 }
