@@ -1,3 +1,5 @@
+//go:build integration
+
 package postgres
 
 import (
@@ -6,6 +8,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
+	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	_ "github.com/flashlabs/rootpath"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -13,105 +16,113 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-var positionID = uuid.New()
+type EmployeeRepositorySuite struct {
+	suite.Suite
+	ctx          context.Context
+	positionID   uuid.UUID
+	employeeRepo *EmployeeRepository
+	container    *postgres.PostgresContainer
+}
 
-func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, *postgres.PostgresContainer) {
-	container, connURI := setupPostgresContainer(ctx, t)
+func (s *EmployeeRepositorySuite) SetupSuite() {
+	s.ctx = context.Background()
 
-	dbPool, err := pgxpool.New(ctx, connURI)
-	require.NoError(t, err)
+	container, connURI := setupPostgresContainer(s.ctx, s.T())
+	dbPool, err := pgxpool.New(s.ctx, connURI)
+	require.NoError(s.T(), err)
 
-	repo := NewEmployeeRepository(dbPool)
+	employeeRepo := NewEmployeeRepository(dbPool)
 	positionRepo := NewPositionRepository(dbPool)
 
-	_, err = positionRepo.CreatePosition(ctx, domain.CreatePosition{
+	positionID := uuid.New()
+	s.positionID = positionID
+
+	_, err = positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
 		ID:     positionID,
 		Name:   "Go Developer",
 		Salary: 10999,
 	})
-	require.NoError(t, err)
 
-	return repo, container
+	require.NoError(s.T(), err)
+
+	s.employeeRepo = employeeRepo
+	s.container = container
 }
 
-func TestEmployeeRepository_CreateEmployee(t *testing.T) {
-	ctx := context.Background()
+func (s *EmployeeRepositorySuite) TearDownSuite() {
+	err := s.container.Terminate(s.ctx)
+	if err != nil {
+		s.T().Fatalf("could not terminate postgres container: %v", err.Error())
+	}
+}
 
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 	employeeID := uuid.New()
 
 	tests := []struct {
-		name    string
-		request domain.CreateEmployee
-		wantErr error
+		name     string
+		request  domain.CreateEmployee
+		response models.Employee
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   positionID,
+				PositionID:   s.positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Go Developer",
 				Salary:       12345,
+			},
+			response: models.Employee{
+				ID:         employeeID,
+				PositionID: s.positionID,
+				FirstName:  "John",
+				LastName:   "Doe",
 			},
 		},
 		{
 			name: "Duplicate employee id",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   positionID,
+				PositionID:   s.positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
 				Salary:       12345,
 			},
-			wantErr: customerrors.ErrDuplicateID,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrDuplicateID,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreateEmployee(ctx, tt.request)
-
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+			resp, err := s.employeeRepo.CreateEmployee(s.ctx, tt.request)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.EqualExportedValues(s.T(), tt.response, resp)
 		})
 	}
 }
 
-func TestEmployeeRepository_GetEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (s *EmployeeRepositorySuite) TestGetEmployee() {
 	employeeID := uuid.New()
 
-	employee, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	employee, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "Go Developer",
 		Salary:       0,
 	})
 
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -130,41 +141,31 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetEmployee(ctx, tt.employeeID)
+		s.Run(tt.name, func() {
+			resp, err := s.employeeRepo.GetEmployee(s.ctx, tt.employeeID)
 			if tt.wantErr != nil {
-				assert.ErrorIs(t, err, tt.wantErr)
-				assert.NotEqual(t, resp, employee)
+				assert.ErrorIs(s.T(), err, tt.wantErr)
+				assert.NotEqual(s.T(), resp, employee)
 
 				return
 			}
 
-			assert.Equal(t, resp, employee)
+			assert.Equal(s.T(), resp, employee)
 		})
 	}
 }
 
-func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (s *EmployeeRepositorySuite) TestGetEmployeeList() {
 	for i := 0; i < 10; i++ {
-		_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+		_, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 			EmployeeID:   uuid.New(),
-			PositionID:   positionID,
+			PositionID:   s.positionID,
 			FirstName:    "John",
 			LastName:     "Doe",
 			PositionName: "Go Developer",
 			Salary:       30999,
 		})
-		require.NoError(t, err)
+		require.NoError(s.T(), err)
 	}
 
 	var nextCursor string
@@ -193,49 +194,45 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetEmployeeList(ctx, tt.cursor)
-			assert.ErrorIs(t, err, tt.wantErr)
-
-			assert.Equal(t, len(resp.Employees), tt.length)
+		s.Run(tt.name, func() {
+			resp, err := s.employeeRepo.GetEmployeeList(s.ctx, tt.cursor)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.Equal(s.T(), len(resp.Employees), tt.length)
 			nextCursor = resp.Cursor
 		})
 	}
 }
 
-func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
-	ctx := context.Background()
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 	employeeID := uuid.New()
 
-	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "Go developer",
 		Salary:       30999,
 	})
-
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
-		name    string
-		request domain.UpdateEmployee
-		wantErr error
+		name     string
+		request  domain.UpdateEmployee
+		response models.Employee
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
 			request: domain.UpdateEmployee{
 				EmployeeID: employeeID,
-				PositionID: positionID,
+				PositionID: s.positionID,
+				FirstName:  "NewName",
+				LastName:   "NewLastName",
+			},
+			response: models.Employee{
+				ID:         employeeID,
+				PositionID: s.positionID,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
@@ -248,51 +245,43 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
-			wantErr: customerrors.ErrPositionNotFound,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrPositionNotFound,
 		},
 		{
 			name: "Non-existing employee",
 			request: domain.UpdateEmployee{
 				EmployeeID: uuid.New(),
-				PositionID: positionID,
+				PositionID: s.positionID,
 				FirstName:  "NewName",
 				LastName:   "NewLastName",
 			},
-			wantErr: customerrors.ErrEmployeeNotFound,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrEmployeeNotFound,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.UpdateEmployee(ctx, tt.request)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+			resp, err := s.employeeRepo.UpdateEmployee(s.ctx, tt.request)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.EqualExportedValues(s.T(), tt.response, resp)
 		})
 	}
 }
 
-func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container *postgres.PostgresContainer, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate postgres container: %v", err.Error())
-		}
-	}(container, ctx)
-
+func (s *EmployeeRepositorySuite) TestDeleteEmployee() {
 	employeeID := uuid.New()
 
-	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := s.employeeRepo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "Go developer",
 		Salary:       30999,
 	})
-
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -309,10 +298,20 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 			wantErr:    customerrors.ErrEmployeeNotFound,
 		},
 	}
+
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := repo.DeleteEmployee(ctx, tt.employeeID)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+			err := s.employeeRepo.DeleteEmployee(s.ctx, tt.employeeID)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+
+			if tt.wantErr != nil {
+				_, err = s.employeeRepo.GetEmployee(s.ctx, employeeID)
+				assert.ErrorIs(s.T(), err, customerrors.ErrEmployeeNotFound)
+			}
 		})
 	}
+}
+
+func TestEmployeeRepositorySuite(t *testing.T) {
+	suite.Run(t, new(EmployeeRepositorySuite))
 }

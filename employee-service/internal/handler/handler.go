@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate mockgen -source=handler.go -destination=mocks/services.go -package=serviceMock
 type PositionService interface {
 	CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error)
 	GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error)

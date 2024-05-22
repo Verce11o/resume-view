@@ -1,3 +1,5 @@
+//go:build integration
+
 package mongodb
 
 import (
@@ -7,112 +9,118 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
+	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var positionID = uuid.New()
+type EmployeeRepositorySuite struct {
+	suite.Suite
+	positionID uuid.UUID
+	ctx        context.Context
+	client     *mongo.Client
+	container  testcontainers.Container
+	repo       *EmployeeRepository
+}
 
-func setupEmployeeRepo(ctx context.Context, t *testing.T) (*EmployeeRepository, testcontainers.Container) {
-	container, connURI := setupMongoDBContainer(ctx, t)
+func (s *EmployeeRepositorySuite) SetupSuite() {
+	s.ctx = context.Background()
+	container, connURI := setupMongoDBContainer(s.ctx, s.T())
 
-	client, err := mongo.Connect(ctx,
+	client, err := mongo.Connect(s.ctx,
 		options.Client().ApplyURI(connURI),
 		options.Client().SetMaxConnIdleTime(3*time.Second))
+	require.NoError(s.T(), err)
 
-	require.NoError(t, err)
-
-	repo := NewEmployeeRepository(client.Database("employees"))
+	s.repo = NewEmployeeRepository(client.Database("employees"))
 	positionRepo := NewPositionRepository(client.Database("employees"))
 
-	_, err = positionRepo.CreatePosition(ctx, domain.CreatePosition{
-		ID:     positionID,
+	s.positionID = uuid.New()
+	_, err = positionRepo.CreatePosition(s.ctx, domain.CreatePosition{
+		ID:     s.positionID,
 		Name:   "Go Developer",
 		Salary: 10999,
 	})
-	require.NoError(t, err)
 
-	return repo, container
+	s.client = client
+	s.container = container
+	require.NoError(s.T(), err)
 }
 
-func TestEmployeeRepository_CreateEmployee(t *testing.T) {
-	ctx := context.Background()
+func (s *EmployeeRepositorySuite) TearDownSuite() {
+	err := s.container.Terminate(s.ctx)
+	require.NoError(s.T(), err)
+}
 
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeRepositorySuite) TestCreateEmployee() {
 
 	employeeID := uuid.New()
 
 	tests := []struct {
-		name    string
-		request domain.CreateEmployee
-		wantErr error
+		name     string
+		request  domain.CreateEmployee
+		response models.Employee
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   positionID,
+				PositionID:   s.positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Go Developer",
 				Salary:       12345,
+			},
+			response: models.Employee{
+				ID:         employeeID,
+				PositionID: s.positionID,
+				FirstName:  "John",
+				LastName:   "Doe",
 			},
 		},
 		{
 			name: "Duplicate employee id",
 			request: domain.CreateEmployee{
 				EmployeeID:   employeeID,
-				PositionID:   positionID,
+				PositionID:   s.positionID,
 				FirstName:    "John",
 				LastName:     "Doe",
 				PositionName: "Python Developer",
 				Salary:       12345,
 			},
-			wantErr: customerrors.ErrDuplicateID,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrDuplicateID,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := repo.CreateEmployee(ctx, tt.request)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+			resp, err := s.repo.CreateEmployee(s.ctx, tt.request)
+			assert.EqualExportedValues(s.T(), tt.response, resp)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
 		})
 	}
 }
 
-func TestEmployeeRepository_GetEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeRepositorySuite) TestGetEmployee() {
 
 	employeeID := uuid.New()
 
-	employee, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	employee, err := s.repo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "C++ Developer",
 		Salary:       30999,
 	})
-
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -131,41 +139,32 @@ func TestEmployeeRepository_GetEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetEmployee(ctx, tt.employeeID)
-			if tt.wantErr != nil {
-				assert.ErrorIs(t, err, tt.wantErr)
-				assert.NotEqual(t, resp, employee)
+		s.Run(tt.name, func() {
 
+			resp, err := s.repo.GetEmployee(s.ctx, tt.employeeID)
+			if tt.wantErr != nil {
+				assert.ErrorIs(s.T(), err, tt.wantErr)
+				assert.NotEqual(s.T(), resp, employee)
 				return
 			}
 
-			assert.Equal(t, resp, employee)
+			assert.Equal(s.T(), resp, employee)
 		})
 	}
 }
 
-func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeRepositorySuite) TestGetEmployeeList() {
 
 	for i := 0; i < 10; i++ {
-		_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+		_, err := s.repo.CreateEmployee(s.ctx, domain.CreateEmployee{
 			EmployeeID:   uuid.New(),
-			PositionID:   uuid.New(),
+			PositionID:   s.positionID,
 			FirstName:    "Sample",
 			LastName:     "Sample",
 			PositionName: "Python Developer",
 			Salary:       30999,
 		})
-		require.NoError(t, err)
+		require.NoError(s.T(), err)
 	}
 
 	var nextCursor string
@@ -194,51 +193,47 @@ func TestEmployeeRepository_GetEmployeeList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := repo.GetEmployeeList(ctx, tt.cursor)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
 
-			assert.Equal(t, len(resp.Employees), tt.length)
-
+			resp, err := s.repo.GetEmployeeList(s.ctx, tt.cursor)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.Equal(s.T(), len(resp.Employees), tt.length)
 			nextCursor = resp.Cursor
 		})
 	}
 }
 
-func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeRepositorySuite) TestUpdateEmployee() {
 
 	employeeID := uuid.New()
 
-	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := s.repo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "Sample",
 		LastName:     "Sample",
 		PositionName: "Python Developer",
 		Salary:       30999,
 	})
-
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
-		name    string
-		request domain.UpdateEmployee
-		wantErr error
+		name     string
+		request  domain.UpdateEmployee
+		response models.Employee
+		wantErr  error
 	}{
 		{
 			name: "Valid input",
 			request: domain.UpdateEmployee{
 				EmployeeID: employeeID,
-				PositionID: positionID,
+				PositionID: s.positionID,
+				FirstName:  "New Name",
+				LastName:   "New Last Name",
+			},
+			response: models.Employee{
+				ID:         employeeID,
+				PositionID: s.positionID,
 				FirstName:  "New Name",
 				LastName:   "New Last Name",
 			},
@@ -247,43 +242,37 @@ func TestEmployeeRepository_UpdateEmployee(t *testing.T) {
 			name: "Non-existent employee id",
 			request: domain.UpdateEmployee{
 				EmployeeID: uuid.Nil,
-				PositionID: positionID,
+				PositionID: s.positionID,
 				FirstName:  "New Name",
-				LastName:   "New Last  Name",
+				LastName:   "New Last Name",
 			},
-			wantErr: customerrors.ErrEmployeeNotFound,
+			response: models.Employee{},
+			wantErr:  customerrors.ErrEmployeeNotFound,
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err = repo.UpdateEmployee(ctx, tt.request)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+
+			resp, err := s.repo.UpdateEmployee(s.ctx, tt.request)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+			assert.EqualExportedValues(s.T(), tt.response, resp)
 		})
 	}
 }
 
-func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
-	ctx := context.Background()
-
-	repo, container := setupEmployeeRepo(ctx, t)
-	defer func(container testcontainers.Container, ctx context.Context) {
-		err := container.Terminate(ctx)
-		if err != nil {
-			t.Fatalf("could not terminate mongo container: %v", err.Error())
-		}
-	}(container, ctx)
+func (s *EmployeeRepositorySuite) TestDeleteEmployee() {
 
 	employeeID := uuid.New()
 
-	_, err := repo.CreateEmployee(ctx, domain.CreateEmployee{
+	_, err := s.repo.CreateEmployee(s.ctx, domain.CreateEmployee{
 		EmployeeID:   employeeID,
-		PositionID:   positionID,
+		PositionID:   s.positionID,
 		FirstName:    "John",
 		LastName:     "Doe",
 		PositionName: "C++ Developer",
 		Salary:       30999,
 	})
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	tests := []struct {
 		name       string
@@ -302,9 +291,18 @@ func TestEmployeeRepository_DeleteEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err = repo.DeleteEmployee(ctx, tt.employeeID)
-			assert.ErrorIs(t, err, tt.wantErr)
+		s.Run(tt.name, func() {
+			err = s.repo.DeleteEmployee(s.ctx, tt.employeeID)
+			assert.ErrorIs(s.T(), err, tt.wantErr)
+
+			if tt.wantErr != nil {
+				_, err = s.repo.GetEmployee(s.ctx, employeeID)
+				assert.ErrorIs(s.T(), err, customerrors.ErrEmployeeNotFound)
+			}
 		})
 	}
+}
+
+func TestEmployeeRepositorySuite(t *testing.T) {
+	suite.Run(t, new(EmployeeRepositorySuite))
 }
