@@ -4,15 +4,12 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"testing"
-	"time"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/customerrors"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	_ "github.com/flashlabs/rootpath"
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
@@ -20,49 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
-
-func runMigrations(t *testing.T, connURI string) {
-	m, err := migrate.New(
-		"file://migrations",
-		connURI)
-
-	require.NoError(t, err)
-
-	defer m.Close()
-
-	err = m.Up()
-
-	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		require.NoError(t, err)
-	}
-}
-
-func setupPostgresContainer(ctx context.Context, t *testing.T) (*postgres.PostgresContainer, string) {
-	postgresContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:latest"),
-		postgres.WithDatabase("employees"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("vercello"),
-		testcontainers.WithWaitStrategy(
-			wait.
-				ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(3*time.Second),
-		),
-	)
-	require.NoError(t, err)
-
-	connURI, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(t, err)
-
-	runMigrations(t, connURI)
-
-	return postgresContainer, connURI
-}
 
 type PositionRepositorySuite struct {
 	suite.Suite
@@ -74,7 +30,7 @@ type PositionRepositorySuite struct {
 func (p *PositionRepositorySuite) SetupSuite() {
 	p.ctx = context.Background()
 
-	container, connURI := setupPostgresContainer(p.ctx, p.T())
+	container, connURI := SetupPostgresContainer(p.ctx, p.T())
 	dbPool, err := pgxpool.New(p.ctx, connURI)
 	require.NoError(p.T(), err)
 

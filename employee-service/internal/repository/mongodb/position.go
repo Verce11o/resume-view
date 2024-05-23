@@ -133,8 +133,6 @@ func (p *PositionRepository) GetPositionList(ctx context.Context, cursor string)
 	if len(positions) > 0 {
 		lastPosition := positions[len(positions)-1]
 
-		fmt.Println(lastPosition.Name)
-
 		nextCursor = pagination.EncodeCursor(lastPosition.CreatedAt, lastPosition.ID.String())
 	}
 
