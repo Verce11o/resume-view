@@ -31,7 +31,7 @@ type EmployeeRepositorySuite struct {
 func (s *EmployeeRepositorySuite) SetupSuite() {
 	s.ctx = context.Background()
 
-	container, connURI := setupPostgresContainer(s.ctx, s.T())
+	container, connURI := SetupPostgresContainer(s.ctx, s.T())
 	dbPool, err := pgxpool.New(s.ctx, connURI)
 	require.NoError(s.T(), err)
 

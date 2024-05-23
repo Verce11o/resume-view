@@ -30,7 +30,7 @@ type EmployeeRepositorySuite struct {
 
 func (s *EmployeeRepositorySuite) SetupSuite() {
 	s.ctx = context.Background()
-	container, connURI := setupMongoDBContainer(s.ctx, s.T())
+	container, connURI := SetupMongoContainer(s.ctx, s.T())
 
 	client, err := mongo.Connect(s.ctx,
 		options.Client().ApplyURI(connURI),
