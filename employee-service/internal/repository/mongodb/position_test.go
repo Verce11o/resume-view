@@ -15,38 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-func setupMongoDBContainer(ctx context.Context, t *testing.T) (testcontainers.Container, string) {
-	entrypointScript := []string{
-		"/bin/bash", "-c",
-		`echo "rs.initiate()" > /docker-entrypoint-initdb.d/1-init-replicaset.js &&
-		exec /usr/local/bin/docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --noauth`,
-	}
-
-	mongoContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "mongo:latest",
-			ExposedPorts: []string{"27017/tcp"},
-			Env: map[string]string{
-				"MONGO_APP_DATABASE": "employees",
-				"MONGO_REPLICA_PORT": "27018",
-			},
-			WaitingFor: wait.ForListeningPort("27017/tcp"),
-			Entrypoint: entrypointScript,
-		},
-		Started: true,
-	})
-	require.NoError(t, err)
-
-	connURI, err := mongoContainer.Endpoint(ctx, "mongodb")
-	require.NoError(t, err)
-
-	return mongoContainer, connURI + "/?directConnection=true&tls=false"
-}
 
 type PositionRepositorySuite struct {
 	suite.Suite
@@ -58,7 +29,7 @@ type PositionRepositorySuite struct {
 
 func (s *PositionRepositorySuite) SetupSuite() {
 	s.ctx = context.Background()
-	container, connURI := setupMongoDBContainer(s.ctx, s.T())
+	container, connURI := SetupMongoContainer(s.ctx, s.T())
 
 	client, err := mongo.Connect(s.ctx,
 		options.Client().ApplyURI(connURI),
@@ -117,6 +88,7 @@ func (s *PositionRepositorySuite) TestCreatePosition() {
 			assert.ErrorIs(s.T(), err, tt.wantErr)
 			assert.EqualExportedValues(s.T(), tt.response, resp)
 		})
+
 	}
 }
 

@@ -20,7 +20,7 @@ import (
 const employeeLimit = 5
 
 type EmployeeRepository struct {
-	db *pgxpool.Pool // возможно, в transactor создать методы query, exec итд чтобы не пришлось изменять ко
+	db *pgxpool.Pool
 }
 
 func NewEmployeeRepository(db *pgxpool.Pool) *EmployeeRepository {
