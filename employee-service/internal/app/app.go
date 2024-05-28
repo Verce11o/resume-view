@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/mongodb"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/postgres"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/redis"
@@ -49,13 +50,15 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		return nil, fmt.Errorf("could not connect to redis: %w", err)
 	}
 
+	authenticator := auth.NewAuthenticator(cfg.JWTSignKey, cfg.TokenTTL)
+
 	employeeCache := redis.NewEmployeeCache(redisClient)
 	positionCache := redis.NewPositionCache(redisClient)
 
-	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor)
+	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor, authenticator)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
-	srv := server.NewServer(log, employeeService, positionService, cfg)
+	srv := server.NewServer(log, employeeService, positionService, cfg, authenticator)
 
 	return &App{
 		cfg: cfg,

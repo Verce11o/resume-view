@@ -7,16 +7,54 @@ servers:
   - url: http://localhost:3009/api/v1
 
 paths:
-  /employee:
+  /auth/signin:
+    post:
+      operationId: SignIn
+      summary: Sign In as an employee
+      description: Signs in as an employee with id
+      tags:
+        - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "eef99b1e-4164-4354-a49d-29c7bde2813c"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInEmployee'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: invalid id
 
+  /employee:
     post:
       operationId: CreateEmployee
       summary: Create employee
-      description: Creates employee with corresponding position.
-
+      description: Creates employee with corresponding position
       tags:
         - employees
-
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployee'
       responses:
         '200':
           description: Success
@@ -25,28 +63,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/Employee'
 
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateEmployee'
-
     get:
       operationId: GetEmployeeList
       summary: Get employee list
       description: Gets all employees
-
       tags:
         - employees
-
       parameters:
         - name: cursor
           in: query
-          required: false
           schema:
             type: string
-          description: Pagination cursor for next page.
-
+          description: Pagination cursor for next page
       responses:
         '200':
           description: Success
@@ -68,7 +96,6 @@ paths:
       operationId: GetEmployeeByID
       tags:
         - employees
-
       parameters:
         - name: id
           in: path
@@ -76,7 +103,6 @@ paths:
             type: string
           description: Employee ID
           required: true
-
       responses:
         '200':
           description: Success
@@ -94,12 +120,14 @@ paths:
                   message:
                     type: string
                     example: employee not found
+
     put:
       tags:
         - employees
-
       summary: Update employee by id
       operationId: UpdateEmployeeByID
+      security:
+        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -107,13 +135,11 @@ paths:
             type: string
           description: Employee ID
           required: true
-
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/UpdateEmployee"
-
       responses:
         '200':
           description: Success
@@ -135,9 +161,10 @@ paths:
     delete:
       tags:
         - employees
-
       summary: Delete employee by id
       operationId: DeleteEmployeeByID
+      security:
+        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -145,7 +172,6 @@ paths:
             type: string
           description: Employee ID
           required: true
-
       responses:
         '200':
           description: Success
@@ -173,16 +199,15 @@ paths:
       operationId: CreatePosition
       summary: Create position
       description: Creates position
-
       tags:
         - position
-
+      security:
+        - BearerAuth: []
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePosition'
-
       responses:
         '200':
           description: Success
@@ -190,21 +215,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Position'
+
     get:
       operationId: GetPositionList
       summary: Get position list
       description: Gets all positions
-
       tags:
         - position
-
       parameters:
         - name: cursor
           in: query
           schema:
             type: string
-          description: Pagination cursor for next page.
-
+          description: Pagination cursor for next page
       responses:
         '200':
           description: Success
@@ -258,6 +281,8 @@ paths:
       description: Updates a position with given details
       tags:
         - position
+      security:
+        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -276,7 +301,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Position'
+                $ref: "#/components/schemas/Position"
         '404':
           description: Position not found
           content:
@@ -294,6 +319,8 @@ paths:
       description: Deletes a position by ID
       tags:
         - position
+      security:
+        - BearerAuth: []
       parameters:
         - name: id
           in: path
@@ -316,11 +343,27 @@ paths:
                     example: position not found
 
 components:
+  securitySchemes:
+    BearerAuth:
+      in: header
+      name: Authorization
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
+    SignInEmployee:
+      type: object
+      properties:
+        id:
+          type: string
+          x-oapi-codegen-extra-tags:
+            binding: required
+      required:
+        - id
 
     CreateEmployee:
       type: object
-
       properties:
         first_name:
           type: string
@@ -338,7 +381,6 @@ components:
           type: integer
           x-oapi-codegen-extra-tags:
             binding: required
-
       required:
         - first_name
         - last_name
@@ -347,7 +389,6 @@ components:
 
     UpdateEmployee:
       type: object
-
       properties:
         first_name:
           type: string
@@ -368,7 +409,6 @@ components:
 
     CreatePosition:
       type: object
-
       properties:
         name:
           type: string
@@ -397,7 +437,6 @@ components:
         - name
         - salary
 
-
     Employee:
       type: object
       properties:
@@ -407,11 +446,9 @@ components:
         first_name:
           type: string
           description: Employee first name
-
         last_name:
           type: string
           description: Employee last name
-
         position_id:
           type: string
           description: Employee position id
@@ -428,5 +465,3 @@ components:
         salary:
           type: integer
           description: Position salary
-
-
