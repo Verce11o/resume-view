@@ -57,7 +57,7 @@ func (s *Server) InitRoutes() *gin.Engine {
 
 	validator := middleware.OapiRequestValidatorWithOptions(spec,
 		&middleware.Options{
-			ErrorHandler: func(c *gin.Context, message string, statusCode int) {
+			ErrorHandler: func(c *gin.Context, message string, _ int) {
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"message": message,
 				})
@@ -68,6 +68,9 @@ func (s *Server) InitRoutes() *gin.Engine {
 		},
 	)
 
+	apiGroup.Use(handlers.LogMiddleware)
+	apiGroup.Use(handlers.CorrelationIDMiddleware)
+	apiGroup.Use(handlers.TracerMiddleware)
 	apiGroup.Use(validator)
 
 	api.RegisterHandlers(apiGroup, handlers)
