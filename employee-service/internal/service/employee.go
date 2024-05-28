@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -32,23 +33,16 @@ type Transactor interface {
 }
 
 type EmployeeService struct {
-	log          *zap.SugaredLogger
-	employeeRepo EmployeeRepository
-	positionRepo PositionRepository
-	cache        EmployeeCacheRepository
-	transactor   Transactor
+	log           *zap.SugaredLogger
+	employeeRepo  EmployeeRepository
+	positionRepo  PositionRepository
+	cache         EmployeeCacheRepository
+	transactor    Transactor
+	authenticator *auth.Authenticator
 }
 
-func NewEmployeeService(log *zap.SugaredLogger,
-	employeeRepo EmployeeRepository,
-	positionRepo PositionRepository,
-	cache EmployeeCacheRepository,
-	transactor Transactor) *EmployeeService {
-	return &EmployeeService{log: log,
-		employeeRepo: employeeRepo,
-		positionRepo: positionRepo,
-		cache:        cache,
-		transactor:   transactor}
+func NewEmployeeService(log *zap.SugaredLogger, employeeRepo EmployeeRepository, positionRepo PositionRepository, cache EmployeeCacheRepository, transactor Transactor, authenticator *auth.Authenticator) *EmployeeService {
+	return &EmployeeService{log: log, employeeRepo: employeeRepo, positionRepo: positionRepo, cache: cache, transactor: transactor, authenticator: authenticator}
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
@@ -141,4 +135,20 @@ func (s *EmployeeService) DeleteEmployee(ctx context.Context, id uuid.UUID) erro
 	}
 
 	return nil
+}
+
+func (s *EmployeeService) SignIn(ctx context.Context, employeeID uuid.UUID) (string, error) {
+	_, err := s.employeeRepo.GetEmployee(ctx, employeeID)
+
+	if err != nil {
+		return "", fmt.Errorf("get employee: %w", err)
+	}
+
+	tokens, err := s.authenticator.GenerateToken(employeeID)
+
+	if err != nil {
+		return "", fmt.Errorf("generate tokens: %w", err)
+	}
+
+	return tokens, nil
 }
