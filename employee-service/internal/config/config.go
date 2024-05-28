@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -11,8 +12,10 @@ type Config struct {
 	Postgres     Postgres
 	MongoDB      MongoDB
 	Redis        Redis
-	MainDatabase string `env:"MAIN_DATABASE" env-default:"mongo"`
-	LogLevel     string `env:"LOG_LEVEL" env-default:"DEBUG"`
+	JWTSignKey   string        `env:"JWT_SIGN_KEY" env-required:"true"`
+	TokenTTL     time.Duration `env:"TOKEN_TTL" env-required:"true"`
+	MainDatabase string        `env:"MAIN_DATABASE" env-default:"postgres"`
+	LogLevel     string        `env:"LOG_LEVEL" env-default:"DEBUG"`
 }
 
 type HTTPServer struct {

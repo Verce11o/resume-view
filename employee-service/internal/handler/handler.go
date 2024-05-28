@@ -6,6 +6,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
+	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -27,16 +28,50 @@ type EmployeeService interface {
 	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
 	UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error)
 	DeleteEmployee(ctx context.Context, id uuid.UUID) error
+	SignIn(ctx context.Context, employeeID uuid.UUID) (string, error)
 }
 
 type Handler struct {
 	log             *zap.SugaredLogger
 	positionService PositionService
 	employeeService EmployeeService
+	authenticator   *auth.Authenticator
 }
 
-func NewHandler(log *zap.SugaredLogger, positionService PositionService, employeeService EmployeeService) *Handler {
-	return &Handler{log: log, positionService: positionService, employeeService: employeeService}
+func NewHandler(log *zap.SugaredLogger, positionService PositionService, employeeService EmployeeService,
+	authenticator *auth.Authenticator) *Handler {
+	return &Handler{log: log, positionService: positionService, employeeService: employeeService,
+		authenticator: authenticator}
+}
+
+func (h *Handler) SignIn(c *gin.Context) {
+	var input api.SignInEmployee
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		return
+	}
+
+	employeeID, err := uuid.Parse(input.Id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		return
+	}
+
+	token, err := h.employeeService.SignIn(c.Request.Context(), employeeID)
+
+	if err != nil {
+		h.log.Errorf("error while sign in: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": token,
+	})
 }
 
 func (h *Handler) CreateEmployee(c *gin.Context) {

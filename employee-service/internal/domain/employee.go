@@ -18,3 +18,7 @@ type UpdateEmployee struct {
 	LastName   string
 	Salary     int
 }
+
+type SignInEmployee struct {
+	EmployeeID uuid.UUID `json:"id"`
+}

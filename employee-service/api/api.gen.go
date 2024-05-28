@@ -18,6 +18,10 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+const (
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
 // CreateEmployee defines model for CreateEmployee.
 type CreateEmployee struct {
 	FirstName    string `binding:"required" json:"first_name"`
@@ -59,6 +63,11 @@ type Position struct {
 	Salary *int `json:"salary,omitempty"`
 }
 
+// SignInEmployee defines model for SignInEmployee.
+type SignInEmployee struct {
+	Id string `binding:"required" json:"id"`
+}
+
 // UpdateEmployee defines model for UpdateEmployee.
 type UpdateEmployee struct {
 	FirstName  string `binding:"required" json:"first_name"`
@@ -72,17 +81,25 @@ type UpdatePosition struct {
 	Salary int    `binding:"required" json:"salary"`
 }
 
+// SignInJSONBody defines parameters for SignIn.
+type SignInJSONBody struct {
+	Id *string `json:"id,omitempty"`
+}
+
 // GetEmployeeListParams defines parameters for GetEmployeeList.
 type GetEmployeeListParams struct {
-	// Cursor Pagination cursor for next page.
+	// Cursor Pagination cursor for next page
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
 
 // GetPositionListParams defines parameters for GetPositionList.
 type GetPositionListParams struct {
-	// Cursor Pagination cursor for next page.
+	// Cursor Pagination cursor for next page
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
+
+// SignInJSONRequestBody defines body for SignIn for application/json ContentType.
+type SignInJSONRequestBody SignInJSONBody
 
 // CreateEmployeeJSONRequestBody defines body for CreateEmployee for application/json ContentType.
 type CreateEmployeeJSONRequestBody = CreateEmployee
@@ -98,6 +115,9 @@ type UpdatePositionByIDJSONRequestBody = UpdatePosition
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Sign In as an employee
+	// (POST /auth/signin)
+	SignIn(c *gin.Context)
 	// Get employee list
 	// (GET /employee)
 	GetEmployeeList(c *gin.Context, params GetEmployeeListParams)
@@ -139,6 +159,19 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(c *gin.Context)
 
+// SignIn operation middleware
+func (siw *ServerInterfaceWrapper) SignIn(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.SignIn(c)
+}
+
 // GetEmployeeList operation middleware
 func (siw *ServerInterfaceWrapper) GetEmployeeList(c *gin.Context) {
 
@@ -168,6 +201,8 @@ func (siw *ServerInterfaceWrapper) GetEmployeeList(c *gin.Context) {
 // CreateEmployee operation middleware
 func (siw *ServerInterfaceWrapper) CreateEmployee(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -191,6 +226,8 @@ func (siw *ServerInterfaceWrapper) DeleteEmployeeByID(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -240,6 +277,8 @@ func (siw *ServerInterfaceWrapper) UpdateEmployeeByID(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -279,6 +318,8 @@ func (siw *ServerInterfaceWrapper) GetPositionList(c *gin.Context) {
 // CreatePosition operation middleware
 func (siw *ServerInterfaceWrapper) CreatePosition(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -302,6 +343,8 @@ func (siw *ServerInterfaceWrapper) DeletePositionByID(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -351,6 +394,8 @@ func (siw *ServerInterfaceWrapper) UpdatePositionByID(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -388,6 +433,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.POST(options.BaseURL+"/auth/signin", wrapper.SignIn)
 	router.GET(options.BaseURL+"/employee", wrapper.GetEmployeeList)
 	router.POST(options.BaseURL+"/employee", wrapper.CreateEmployee)
 	router.DELETE(options.BaseURL+"/employee/:id", wrapper.DeleteEmployeeByID)
@@ -403,23 +449,27 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"ebeSG+EfAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
