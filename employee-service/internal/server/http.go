@@ -22,15 +22,16 @@ type HTTP struct {
 	log             *zap.SugaredLogger
 	employeeService service.Employee
 	positionService service.Position
+	authService     service.Auth
 	authenticator   *auth.Authenticator
 	cfg             config.Config
 	httpServer      *http.Server
 }
 
 func NewHTTP(log *zap.SugaredLogger, employeeService service.Employee, positionService service.Position,
-	authenticator *auth.Authenticator, cfg config.Config) *HTTP {
+	authService service.Auth, authenticator *auth.Authenticator, cfg config.Config) *HTTP {
 	return &HTTP{log: log, employeeService: employeeService, positionService: positionService,
-		authenticator: authenticator, cfg: cfg}
+		authService: authService, authenticator: authenticator, cfg: cfg}
 }
 
 func (s *HTTP) Run(handler http.Handler) error {
@@ -56,7 +57,7 @@ func (s *HTTP) InitRoutes() *gin.Engine {
 	apiGroup := router.Group("/api/v1")
 
 	spec, _ := api.GetSwagger()
-	handlers := http2.NewHandler(s.log, s.positionService, s.employeeService, s.authenticator)
+	handlers := http2.NewHandler(s.log, s.positionService, s.employeeService, s.authService)
 
 	validator := middleware.OapiRequestValidatorWithOptions(spec,
 		&middleware.Options{
