@@ -138,19 +138,3 @@ func (s *EmployeeService) DeleteEmployee(ctx context.Context, id uuid.UUID) erro
 
 	return nil
 }
-
-func (s *EmployeeService) SignIn(ctx context.Context, employeeID uuid.UUID) (string, error) {
-	_, err := s.employeeRepo.GetEmployee(ctx, employeeID)
-
-	if err != nil {
-		return "", fmt.Errorf("get employee: %w", err)
-	}
-
-	tokens, err := s.authenticator.GenerateToken(employeeID)
-
-	if err != nil {
-		return "", fmt.Errorf("generate tokens: %w", err)
-	}
-
-	return tokens, nil
-}

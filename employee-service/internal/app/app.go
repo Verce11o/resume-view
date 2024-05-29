@@ -60,7 +60,9 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		transactor, authenticator)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
-	httpSrv := server.NewHTTP(log, employeeService, positionService, authenticator, cfg)
+	authService := service.NewAuthService(log, employeeRepo, authenticator)
+
+	httpSrv := server.NewHTTP(log, employeeService, positionService, authService, authenticator, cfg)
 	grpcSrv := server.NewGRPC(log, employeeService, positionService, cfg)
 
 	return &App{

@@ -22,6 +22,7 @@ func NewAuthenticator(signKey string, tokenTTL time.Duration) *Authenticator {
 	return &Authenticator{SignKey: signKey, TokenTTL: tokenTTL}
 }
 
+// ParseToken returns employeeID and wrapped error
 func (a *Authenticator) ParseToken(token string) (string, error) {
 	parsedToken, err := jwt.ParseWithClaims(token, &tokenClaims{}, func(_ *jwt.Token) (interface{}, error) {
 		return []byte(a.SignKey), nil
@@ -32,7 +33,7 @@ func (a *Authenticator) ParseToken(token string) (string, error) {
 	}
 
 	claims, ok := parsedToken.Claims.(*tokenClaims)
-	if !ok {
+	if !ok || !parsedToken.Valid {
 		return "", fmt.Errorf("failed to parse token claims")
 	}
 

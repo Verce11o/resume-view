@@ -24,7 +24,6 @@ const (
 	EmployeeService_GetEmployeeList_FullMethodName = "/resume_view.EmployeeService/GetEmployeeList"
 	EmployeeService_UpdateEmployee_FullMethodName  = "/resume_view.EmployeeService/UpdateEmployee"
 	EmployeeService_DeleteEmployee_FullMethodName  = "/resume_view.EmployeeService/DeleteEmployee"
-	EmployeeService_SignIn_FullMethodName          = "/resume_view.EmployeeService/SignIn"
 )
 
 // EmployeeServiceClient is the client API for EmployeeService service.
@@ -36,7 +35,6 @@ type EmployeeServiceClient interface {
 	GetEmployeeList(ctx context.Context, in *GetEmployeeListRequest, opts ...grpc.CallOption) (*GetEmployeeListResponse, error)
 	UpdateEmployee(ctx context.Context, in *UpdateEmployeeRequest, opts ...grpc.CallOption) (*Employee, error)
 	DeleteEmployee(ctx context.Context, in *DeleteEmployeeRequest, opts ...grpc.CallOption) (*DeleteEmployeeResponse, error)
-	SignIn(ctx context.Context, in *SignInRequest, opts ...grpc.CallOption) (*SignInResponse, error)
 }
 
 type employeeServiceClient struct {
@@ -92,15 +90,6 @@ func (c *employeeServiceClient) DeleteEmployee(ctx context.Context, in *DeleteEm
 	return out, nil
 }
 
-func (c *employeeServiceClient) SignIn(ctx context.Context, in *SignInRequest, opts ...grpc.CallOption) (*SignInResponse, error) {
-	out := new(SignInResponse)
-	err := c.cc.Invoke(ctx, EmployeeService_SignIn_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // EmployeeServiceServer is the server API for EmployeeService service.
 // All implementations must embed UnimplementedEmployeeServiceServer
 // for forward compatibility
@@ -110,7 +99,6 @@ type EmployeeServiceServer interface {
 	GetEmployeeList(context.Context, *GetEmployeeListRequest) (*GetEmployeeListResponse, error)
 	UpdateEmployee(context.Context, *UpdateEmployeeRequest) (*Employee, error)
 	DeleteEmployee(context.Context, *DeleteEmployeeRequest) (*DeleteEmployeeResponse, error)
-	SignIn(context.Context, *SignInRequest) (*SignInResponse, error)
 	mustEmbedUnimplementedEmployeeServiceServer()
 }
 
@@ -132,9 +120,6 @@ func (UnimplementedEmployeeServiceServer) UpdateEmployee(context.Context, *Updat
 }
 func (UnimplementedEmployeeServiceServer) DeleteEmployee(context.Context, *DeleteEmployeeRequest) (*DeleteEmployeeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteEmployee not implemented")
-}
-func (UnimplementedEmployeeServiceServer) SignIn(context.Context, *SignInRequest) (*SignInResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SignIn not implemented")
 }
 func (UnimplementedEmployeeServiceServer) mustEmbedUnimplementedEmployeeServiceServer() {}
 
@@ -239,24 +224,6 @@ func _EmployeeService_DeleteEmployee_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EmployeeService_SignIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SignInRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EmployeeServiceServer).SignIn(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: EmployeeService_SignIn_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EmployeeServiceServer).SignIn(ctx, req.(*SignInRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // EmployeeService_ServiceDesc is the grpc.ServiceDesc for EmployeeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -283,10 +250,6 @@ var EmployeeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteEmployee",
 			Handler:    _EmployeeService_DeleteEmployee_Handler,
-		},
-		{
-			MethodName: "SignIn",
-			Handler:    _EmployeeService_SignIn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
