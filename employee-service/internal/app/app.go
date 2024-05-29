@@ -27,9 +27,10 @@ const (
 )
 
 type App struct {
-	cfg config.Config
-	log *zap.SugaredLogger
-	srv *server.Server
+	cfg     config.Config
+	log     *zap.SugaredLogger
+	httpSrv *server.HTTP
+	grpcSrv *server.GRPC
 }
 
 func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, error) {
@@ -55,25 +56,35 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	employeeCache := redis.NewEmployeeCache(redisClient)
 	positionCache := redis.NewPositionCache(redisClient)
 
-	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor, authenticator)
+	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache,
+		transactor, authenticator)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
-	srv := server.NewServer(log, employeeService, positionService, cfg, authenticator)
+	httpSrv := server.NewHTTP(log, employeeService, positionService, authenticator, cfg)
+	grpcSrv := server.NewGRPC(log, employeeService, positionService, cfg)
 
 	return &App{
-		cfg: cfg,
-		log: log,
-		srv: srv,
+		cfg:     cfg,
+		log:     log,
+		httpSrv: httpSrv,
+		grpcSrv: grpcSrv,
 	}, nil
 }
 
 func (a *App) Run() error {
-	a.log.Infof("server starting on port %s...", a.cfg.HTTPServer.Port)
+	a.log.Infof("http server starting on port %s...", a.cfg.HTTPServer.Port)
+	a.log.Infof("grpc server starting on port %s...", a.cfg.GRPCServer.Port)
 
-	if err := a.srv.Run(a.srv.InitRoutes()); err != nil {
-		a.log.Errorf("Error while start server: %v", err)
+	if err := a.httpSrv.Run(a.httpSrv.InitRoutes()); err != nil {
+		a.log.Errorf("error while start http server: %v", err)
 
-		return fmt.Errorf("could not start server: %w", err)
+		return fmt.Errorf("could not start http server: %w", err)
+	}
+
+	if err := a.grpcSrv.Run(); err != nil {
+		a.log.Errorf("Error while start grpc server: %v", err)
+
+		return fmt.Errorf("could not start grpc server: %w", err)
 	}
 
 	return nil
@@ -86,10 +97,12 @@ func (a *App) Wait() {
 }
 
 func (a *App) Stop(ctx context.Context) error {
-	if err := a.srv.Shutdown(ctx); err != nil {
-		a.log.Errorf("Error while shutting down server: %v", err)
+	a.grpcSrv.Shutdown()
 
-		return fmt.Errorf("could not stop server: %w", err)
+	if err := a.httpSrv.Shutdown(ctx); err != nil {
+		a.log.Errorf("Error while shutting down http server: %v", err)
+
+		return fmt.Errorf("could not stop http server: %w", err)
 	}
 
 	return nil

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package view;
+package resume_view;
 
-option go_package = "github.com/Verce11o/resume-view/protos;view";
+option go_package = "github.com/Verce11o/resume-view/protos";
 import "google/protobuf/timestamp.proto";
 
 service ViewService {
