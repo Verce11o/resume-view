@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package resume_view;
+
+option go_package = "github.com/Verce11o/resume-view/protos";
+import "google/protobuf/timestamp.proto";
+
+service PositionService {
+  rpc CreatePosition(CreatePositionRequest) returns (Position);
+  rpc GetPosition(GetPositionRequest) returns (Position);
+  rpc GetPositionList(GetPositionListRequest) returns (GetPositionListResponse);
+  rpc UpdatePosition(UpdatePositionRequest) returns (Position);
+  rpc DeletePosition(DeletePositionRequest) returns (DeletePositionResponse);
+}
+
+message Position {
+  string id = 1;
+  string name = 2;
+  int32 salary = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message CreatePositionRequest {
+  string name = 1;
+  int32 salary = 2;
+}
+
+message GetPositionRequest {
+  string position_id = 1;
+}
+
+message GetPositionListRequest {
+  string cursor = 1;
+}
+
+message GetPositionListResponse {
+  string cursor = 1;
+  repeated Position positions = 2;
+}
+
+
+message UpdatePositionRequest {
+  string id = 1;
+  string name = 2;
+  int32 salary = 3;
+}
+
+message DeletePositionRequest {
+  string position_id = 1;
+}
+
+message DeletePositionResponse {}
+
+
+
+

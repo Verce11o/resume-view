@@ -1,44 +1,25 @@
-package handler
+package http
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
-	"github.com/Verce11o/resume-view/employee-service/internal/models"
+	"github.com/Verce11o/resume-view/employee-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-//go:generate mockgen -source=handler.go -destination=mocks/services.go -package=serviceMock
-type PositionService interface {
-	CreatePosition(ctx context.Context, req domain.CreatePosition) (models.Position, error)
-	GetPosition(ctx context.Context, id uuid.UUID) (models.Position, error)
-	GetPositionList(ctx context.Context, cursor string) (models.PositionList, error)
-	UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error)
-	DeletePosition(ctx context.Context, id uuid.UUID) error
-}
-
-type EmployeeService interface {
-	CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error)
-	GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error)
-	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
-	UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error)
-	DeleteEmployee(ctx context.Context, id uuid.UUID) error
-	SignIn(ctx context.Context, employeeID uuid.UUID) (string, error)
-}
-
 type Handler struct {
 	log             *zap.SugaredLogger
-	positionService PositionService
-	employeeService EmployeeService
+	positionService service.Position
+	employeeService service.Employee
 	authenticator   *auth.Authenticator
 }
 
-func NewHandler(log *zap.SugaredLogger, positionService PositionService, employeeService EmployeeService,
+func NewHandler(log *zap.SugaredLogger, positionService service.Position, employeeService service.Employee,
 	authenticator *auth.Authenticator) *Handler {
 	return &Handler{log: log, positionService: positionService, employeeService: employeeService,
 		authenticator: authenticator}

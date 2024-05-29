@@ -8,18 +8,24 @@ import (
 )
 
 type Config struct {
-	HTTPServer   HTTPServer
-	Postgres     Postgres
-	MongoDB      MongoDB
-	Redis        Redis
-	JWTSignKey   string        `env:"JWT_SIGN_KEY" env-required:"true"`
-	TokenTTL     time.Duration `env:"TOKEN_TTL" env-required:"true"`
-	MainDatabase string        `env:"MAIN_DATABASE" env-default:"postgres"`
-	LogLevel     string        `env:"LOG_LEVEL" env-default:"DEBUG"`
+	HTTPServer    HTTPServer
+	GRPCServer    GRPCServer
+	Postgres      Postgres
+	MongoDB       MongoDB
+	Redis         Redis
+	JWTSignKey    string        `env:"JWT_SIGN_KEY" env-required:"true"`
+	TokenTTL      time.Duration `env:"TOKEN_TTL" env-required:"true"`
+	MainDatabase  string        `env:"MAIN_DATABASE" env-default:"postgres"`
+	MainTransport string        `env:"MAIN_TRANSPORT" env-default:"http"`
+	LogLevel      string        `env:"LOG_LEVEL" env-default:"DEBUG"`
 }
 
 type HTTPServer struct {
-	Port string `env:"SERVER_PORT" env-default:":3009"`
+	Port string `env:"HTTP_SERVER_PORT" env-default:":3009"`
+}
+
+type GRPCServer struct {
+	Port string `env:"GRPC_SERVER_PORT" env-default:":3010"`
 }
 
 type Postgres struct {

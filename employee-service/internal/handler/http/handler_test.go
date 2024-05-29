@@ -1,6 +1,6 @@
 //go:build !integration
 
-package handler
+package http
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/Verce11o/resume-view/employee-service/api"
-	serviceMock "github.com/Verce11o/resume-view/employee-service/internal/handler/mocks"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
+	serviceMock "github.com/Verce11o/resume-view/employee-service/internal/service/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

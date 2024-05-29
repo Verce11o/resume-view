@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package resume_view;
+
+option go_package = "github.com/Verce11o/resume-view/protos";
+import "google/protobuf/timestamp.proto";
+
+service EmployeeService {
+  rpc CreateEmployee(CreateEmployeeRequest) returns (Employee);
+  rpc GetEmployee(GetEmployeeRequest) returns (Employee);
+  rpc GetEmployeeList(GetEmployeeListRequest) returns (GetEmployeeListResponse);
+  rpc UpdateEmployee(UpdateEmployeeRequest) returns (Employee);
+  rpc DeleteEmployee(DeleteEmployeeRequest) returns (DeleteEmployeeResponse);
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+}
+
+message Employee {
+  string id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string position_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message CreateEmployeeRequest {
+  string first_name = 1;
+  string last_name = 2;
+  string position_name = 3;
+  int32 salary = 4;
+}
+
+message GetEmployeeRequest {
+  string employee_id = 1;
+}
+
+message GetEmployeeListRequest {
+  string cursor = 1;
+}
+
+message GetEmployeeListResponse {
+  string cursor = 1;
+  repeated Employee employees = 2;
+}
+
+message UpdateEmployeeRequest {
+  string employee_id = 1;
+  string position_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  int32 salary = 5;
+}
+
+message DeleteEmployeeRequest {
+  string employee_id = 1;
+}
+
+message DeleteEmployeeResponse {}
+
+message SignInRequest {
+  string employee_id = 1;
+}
+
+message SignInResponse {
+  string token = 1;
+}
