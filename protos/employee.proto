@@ -11,7 +11,6 @@ service EmployeeService {
   rpc GetEmployeeList(GetEmployeeListRequest) returns (GetEmployeeListResponse);
   rpc UpdateEmployee(UpdateEmployeeRequest) returns (Employee);
   rpc DeleteEmployee(DeleteEmployeeRequest) returns (DeleteEmployeeResponse);
-  rpc SignIn(SignInRequest) returns (SignInResponse);
 }
 
 message Employee {
@@ -56,11 +55,3 @@ message DeleteEmployeeRequest {
 }
 
 message DeleteEmployeeResponse {}
-
-message SignInRequest {
-  string employee_id = 1;
-}
-
-message SignInResponse {
-  string token = 1;
-}

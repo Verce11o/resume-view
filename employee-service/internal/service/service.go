@@ -15,7 +15,6 @@ type Employee interface {
 	GetEmployeeList(ctx context.Context, cursor string) (models.EmployeeList, error)
 	UpdateEmployee(ctx context.Context, req domain.UpdateEmployee) (models.Employee, error)
 	DeleteEmployee(ctx context.Context, id uuid.UUID) error
-	SignIn(ctx context.Context, employeeID uuid.UUID) (string, error)
 }
 
 type Position interface {
@@ -24,4 +23,8 @@ type Position interface {
 	GetPositionList(ctx context.Context, cursor string) (models.PositionList, error)
 	UpdatePosition(ctx context.Context, req domain.UpdatePosition) (models.Position, error)
 	DeletePosition(ctx context.Context, id uuid.UUID) error
+}
+
+type Auth interface {
+	SignIn(ctx context.Context, employeeID uuid.UUID) (string, error)
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
-	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
 	"github.com/Verce11o/resume-view/employee-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,13 +15,13 @@ type Handler struct {
 	log             *zap.SugaredLogger
 	positionService service.Position
 	employeeService service.Employee
-	authenticator   *auth.Authenticator
+	authService     service.Auth
 }
 
 func NewHandler(log *zap.SugaredLogger, positionService service.Position, employeeService service.Employee,
-	authenticator *auth.Authenticator) *Handler {
+	authService service.Auth) *Handler {
 	return &Handler{log: log, positionService: positionService, employeeService: employeeService,
-		authenticator: authenticator}
+		authService: authService}
 }
 
 func (h *Handler) SignIn(c *gin.Context) {
@@ -41,7 +40,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 		return
 	}
 
-	token, err := h.employeeService.SignIn(c.Request.Context(), employeeID)
+	token, err := h.authService.SignIn(c.Request.Context(), employeeID)
 
 	if err != nil {
 		h.log.Errorf("error while sign in: %v", err)

@@ -13,17 +13,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type Position struct {
+type PositionHandler struct {
 	log             *zap.SugaredLogger
 	positionService service.Position
 	pb.UnimplementedPositionServiceServer
 }
 
 func RegisterPosition(server *grpc.Server, log *zap.SugaredLogger, service service.Position) {
-	pb.RegisterPositionServiceServer(server, &Position{log: log, positionService: service})
+	pb.RegisterPositionServiceServer(server, &PositionHandler{log: log, positionService: service})
 }
 
-func (h *Position) CreatePosition(ctx context.Context, input *pb.CreatePositionRequest) (*pb.Position, error) {
+func (h *PositionHandler) CreatePosition(ctx context.Context, input *pb.CreatePositionRequest) (*pb.Position, error) {
 	position, err := h.positionService.CreatePosition(ctx, domain.CreatePosition{
 		ID:     uuid.New(),
 		Name:   input.GetName(),
@@ -39,7 +39,7 @@ func (h *Position) CreatePosition(ctx context.Context, input *pb.CreatePositionR
 	return position.ToProto(), nil
 }
 
-func (h *Position) GetPosition(ctx context.Context, input *pb.GetPositionRequest) (*pb.Position, error) {
+func (h *PositionHandler) GetPosition(ctx context.Context, input *pb.GetPositionRequest) (*pb.Position, error) {
 	positionID, err := uuid.Parse(input.GetPositionId())
 	if err != nil {
 		h.log.Errorf("invalid position id: %s", input.GetPositionId())
@@ -57,7 +57,7 @@ func (h *Position) GetPosition(ctx context.Context, input *pb.GetPositionRequest
 	return position.ToProto(), nil
 }
 
-func (h *Position) GetPositionList(ctx context.Context, input *pb.GetPositionListRequest) (
+func (h *PositionHandler) GetPositionList(ctx context.Context, input *pb.GetPositionListRequest) (
 	*pb.GetPositionListResponse, error) {
 	positionList, err := h.positionService.GetPositionList(ctx, input.GetCursor())
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *Position) GetPositionList(ctx context.Context, input *pb.GetPositionLis
 	return positionList.ToProto(), nil
 }
 
-func (h *Position) UpdatePosition(ctx context.Context, input *pb.UpdatePositionRequest) (*pb.Position, error) {
+func (h *PositionHandler) UpdatePosition(ctx context.Context, input *pb.UpdatePositionRequest) (*pb.Position, error) {
 	positionID, err := uuid.Parse(input.GetId())
 	if err != nil {
 		h.log.Errorf("invalid position id: %s", input.GetId())
@@ -92,7 +92,7 @@ func (h *Position) UpdatePosition(ctx context.Context, input *pb.UpdatePositionR
 	return position.ToProto(), nil
 }
 
-func (h *Position) DeletePosition(ctx context.Context,
+func (h *PositionHandler) DeletePosition(ctx context.Context,
 	input *pb.DeletePositionRequest) (*pb.DeletePositionResponse, error) {
 	positionID, err := uuid.Parse(input.GetPositionId())
 	if err != nil {
