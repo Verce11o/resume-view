@@ -66,14 +66,14 @@ func (s *HTTP) InitRoutes() *gin.Engine {
 				})
 			},
 			Options: openapi3filter.Options{
-				AuthenticationFunc: handlers.AuthMiddleware,
+				AuthenticationFunc: s.AuthMiddleware,
 			},
 		},
 	)
 
-	apiGroup.Use(handlers.LogMiddleware)
-	apiGroup.Use(handlers.CorrelationIDMiddleware)
-	apiGroup.Use(handlers.TracerMiddleware)
+	apiGroup.Use(s.LogMiddleware)
+	apiGroup.Use(s.CorrelationIDMiddleware)
+	apiGroup.Use(s.TracerMiddleware)
 	apiGroup.Use(validator)
 
 	api.RegisterHandlers(apiGroup, handlers)

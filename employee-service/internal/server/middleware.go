@@ -1,4 +1,4 @@
-package http
+package server
 
 import (
 	"context"
@@ -16,25 +16,35 @@ const (
 	correlationIDCtx    = "correlation-id"
 )
 
-func (h *Handler) LogMiddleware(c *gin.Context) {
-	h.log.Debugf("request: %s %s, status: %d",
+type key int
+
+const (
+	keyCorrelationID key = iota
+)
+
+func (s *HTTP) LogMiddleware(c *gin.Context) {
+	s.log.Debugf("request: %s %s, status: %d",
 		c.Request.Method, c.Request.URL.Path, c.Writer.Status())
 
 	c.Next()
 }
 
-func (h *Handler) CorrelationIDMiddleware(c *gin.Context) {
+func (s *HTTP) CorrelationIDMiddleware(c *gin.Context) {
 	correlationID := c.Request.Header.Get(correlationIDHeader)
 	if correlationID == "" {
 		correlationID = uuid.New().String()
 	}
+
+	ctx := context.WithValue(c.Request.Context(), keyCorrelationID, correlationID)
+
+	c.Request = c.Request.WithContext(ctx)
 
 	c.Set(correlationIDCtx, correlationID)
 	c.Writer.Header().Set(correlationIDHeader, correlationID)
 	c.Next()
 }
 
-func (h *Handler) TracerMiddleware(c *gin.Context) {
+func (s *HTTP) TracerMiddleware(c *gin.Context) {
 	startTime := time.Now()
 
 	c.Next()
@@ -46,11 +56,11 @@ func (h *Handler) TracerMiddleware(c *gin.Context) {
 		correlationID = "unknown"
 	}
 
-	h.log.Debugf("correlation ID: %s, request: %s %s, duration: %s",
+	s.log.Debugf("correlation ID: %s, request: %s %s, duration: %s",
 		correlationID, c.Request.Method, c.Request.URL.Path, duration)
 }
 
-func (h *Handler) AuthMiddleware(_ context.Context, input *openapi3filter.AuthenticationInput) error {
+func (s *HTTP) AuthMiddleware(_ context.Context, input *openapi3filter.AuthenticationInput) error {
 	req := input.RequestValidationInput.Request
 	header := req.Header.Get("Authorization")
 
@@ -64,7 +74,7 @@ func (h *Handler) AuthMiddleware(_ context.Context, input *openapi3filter.Authen
 		return errors.New("invalid authorization header")
 	}
 
-	_, err := h.authenticator.ParseToken(headerParts[1])
+	_, err := s.authenticator.ParseToken(headerParts[1])
 
 	if err != nil {
 		return errors.New("invalid authorization header")
