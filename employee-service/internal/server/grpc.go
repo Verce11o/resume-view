@@ -19,8 +19,10 @@ type GRPC struct {
 	server          *grpc.Server
 }
 
-func NewGRPC(log *zap.SugaredLogger, employeeService service.Employee, positionService service.Position, cfg config.Config) *GRPC {
-	srv := grpc.NewServer()
+func NewGRPC(log *zap.SugaredLogger, employeeService service.Employee,
+	positionService service.Position, cfg config.Config) *GRPC {
+	srv := grpc.NewServer(grpc.UnaryInterceptor(CorrelationInterceptor(log)))
+
 	return &GRPC{log: log, employeeService: employeeService, positionService: positionService, cfg: cfg, server: srv}
 }
 
