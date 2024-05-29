@@ -36,6 +36,7 @@ func (p *PositionList) ToProto() *pb.GetPositionListResponse {
 	for _, val := range p.Positions {
 		positions = append(positions, val.ToProto())
 	}
+
 	return &pb.GetPositionListResponse{
 		Cursor:    p.Cursor,
 		Positions: positions,
