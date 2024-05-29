@@ -41,8 +41,10 @@ type EmployeeService struct {
 	authenticator *auth.Authenticator
 }
 
-func NewEmployeeService(log *zap.SugaredLogger, employeeRepo EmployeeRepository, positionRepo PositionRepository, cache EmployeeCacheRepository, transactor Transactor, authenticator *auth.Authenticator) *EmployeeService {
-	return &EmployeeService{log: log, employeeRepo: employeeRepo, positionRepo: positionRepo, cache: cache, transactor: transactor, authenticator: authenticator}
+func NewEmployeeService(log *zap.SugaredLogger, employeeRepo EmployeeRepository, positionRepo PositionRepository,
+	cache EmployeeCacheRepository, transactor Transactor, authenticator *auth.Authenticator) *EmployeeService {
+	return &EmployeeService{log: log, employeeRepo: employeeRepo, positionRepo: positionRepo, cache: cache,
+		transactor: transactor, authenticator: authenticator}
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {

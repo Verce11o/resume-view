@@ -4,7 +4,7 @@
 // - protoc             v4.24.4
 // source: view.proto
 
-package view
+package protos
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ViewService_CreateView_FullMethodName     = "/view.ViewService/CreateView"
-	ViewService_GetResumeViews_FullMethodName = "/view.ViewService/GetResumeViews"
+	ViewService_CreateView_FullMethodName     = "/resume_view.ViewService/CreateView"
+	ViewService_GetResumeViews_FullMethodName = "/resume_view.ViewService/GetResumeViews"
 )
 
 // ViewServiceClient is the client API for ViewService service.
@@ -129,7 +129,7 @@ func _ViewService_GetResumeViews_Handler(srv interface{}, ctx context.Context, d
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ViewService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "view.ViewService",
+	ServiceName: "resume_view.ViewService",
 	HandlerType: (*ViewServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

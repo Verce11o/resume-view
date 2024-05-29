@@ -3,7 +3,9 @@ package models
 import (
 	"time"
 
+	pb "github.com/Verce11o/resume-view/protos/gen/go"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Employee struct {
@@ -15,7 +17,29 @@ type Employee struct {
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at" bson:"updated_at,omitempty"`
 }
 
+func (e *Employee) ToProto() *pb.Employee {
+	return &pb.Employee{
+		Id:         e.ID.String(),
+		FirstName:  e.FirstName,
+		LastName:   e.LastName,
+		PositionId: e.PositionID.String(),
+		CreatedAt:  timestamppb.New(e.CreatedAt),
+		UpdatedAt:  timestamppb.New(e.UpdatedAt),
+	}
+}
+
 type EmployeeList struct {
 	Cursor    string     `json:"cursor"`
 	Employees []Employee `json:"employees"`
+}
+
+func (e *EmployeeList) ToProto() *pb.GetEmployeeListResponse {
+	employees := make([]*pb.Employee, 0, len(e.Employees))
+	for _, val := range e.Employees {
+		employees = append(employees, val.ToProto())
+	}
+	return &pb.GetEmployeeListResponse{
+		Cursor:    e.Cursor,
+		Employees: employees,
+	}
 }
