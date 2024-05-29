@@ -38,6 +38,7 @@ func (e *EmployeeList) ToProto() *pb.GetEmployeeListResponse {
 	for _, val := range e.Employees {
 		employees = append(employees, val.ToProto())
 	}
+
 	return &pb.GetEmployeeListResponse{
 		Cursor:    e.Cursor,
 		Employees: employees,
