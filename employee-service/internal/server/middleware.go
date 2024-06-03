@@ -2,18 +2,15 @@ package server
 
 import (
 	"context"
-	"errors"
+	"net/http"
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 const (
 	correlationIDHeader = "X-Correlation-ID"
-	correlationIDCtx    = "correlation-id"
 )
 
 type key int
@@ -22,63 +19,82 @@ const (
 	keyCorrelationID key = iota
 )
 
-func (s *HTTP) LogMiddleware(c *gin.Context) {
-	s.log.Debugf("request: %s %s, status: %d",
-		c.Request.Method, c.Request.URL.Path, c.Writer.Status())
+func (s *HTTP) LogMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.log.Debugf("request: %s %s",
+			r.Method, r.URL.Path)
 
-	c.Next()
+		next.ServeHTTP(w, r)
+	})
 }
 
-func (s *HTTP) CorrelationIDMiddleware(c *gin.Context) {
-	correlationID := c.Request.Header.Get(correlationIDHeader)
-	if correlationID == "" {
-		correlationID = uuid.New().String()
-	}
+func (s *HTTP) CorrelationIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		correlationID := r.Header.Get(correlationIDHeader)
+		if correlationID == "" {
+			correlationID = uuid.New().String()
+		}
 
-	ctx := context.WithValue(c.Request.Context(), keyCorrelationID, correlationID)
+		ctx := context.WithValue(r.Context(), keyCorrelationID, correlationID)
 
-	c.Request = c.Request.WithContext(ctx)
+		r = r.WithContext(ctx)
 
-	c.Set(correlationIDCtx, correlationID)
-	c.Writer.Header().Set(correlationIDHeader, correlationID)
-	c.Next()
+		r.Header.Set(correlationIDHeader, correlationID)
+
+		next.ServeHTTP(w, r)
+	})
 }
 
-func (s *HTTP) TracerMiddleware(c *gin.Context) {
-	startTime := time.Now()
+func (s *HTTP) TracerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		next.ServeHTTP(w, r)
 
-	c.Next()
+		duration := time.Since(startTime)
 
-	duration := time.Since(startTime)
+		correlationID, exists := r.Context().Value(keyCorrelationID).(string)
+		if !exists {
+			correlationID = "unknown"
+		}
 
-	correlationID, exists := c.Get(correlationIDCtx)
-	if !exists {
-		correlationID = "unknown"
-	}
-
-	s.log.Debugf("correlation ID: %s, request: %s %s, duration: %s",
-		correlationID, c.Request.Method, c.Request.URL.Path, duration)
+		s.log.Debugf("correlation ID: %s, request: %s %s, duration: %s",
+			correlationID, r.Method, r.URL.Path, duration)
+	})
 }
 
-func (s *HTTP) AuthMiddleware(_ context.Context, input *openapi3filter.AuthenticationInput) error {
-	req := input.RequestValidationInput.Request
-	header := req.Header.Get("Authorization")
+func (s *HTTP) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Authorization")
 
-	if header == "" {
-		return errors.New("authorization header is required")
+		if header == "" {
+			http.Error(w, "empty authorization header", http.StatusUnauthorized)
+
+			return
+		}
+
+		headerParts := strings.Split(header, " ")
+
+		if len(headerParts) != 2 {
+			http.Error(w, "invalid authorization header", http.StatusUnauthorized)
+
+			return
+		}
+
+		_, err := s.authenticator.ParseToken(headerParts[1])
+
+		if err != nil {
+			http.Error(w, "invalid authorization header", http.StatusUnauthorized)
+
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	}
+}
 
-	headerParts := strings.Split(header, " ")
-
-	if len(headerParts) != 2 {
-		return errors.New("invalid authorization header")
-	}
-
-	_, err := s.authenticator.ParseToken(headerParts[1])
-
-	if err != nil {
-		return errors.New("invalid authorization header")
-	}
-
-	return nil
+func (s *HTTP) ContentJSONMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
 }

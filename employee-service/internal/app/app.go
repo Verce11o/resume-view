@@ -77,7 +77,12 @@ func (a *App) Run() error {
 	a.log.Infof("http server starting on port %s...", a.cfg.HTTPServer.Port)
 	a.log.Infof("grpc server starting on port %s...", a.cfg.GRPCServer.Port)
 
-	if err := a.httpSrv.Run(a.httpSrv.InitRoutes()); err != nil {
+	router, err := a.httpSrv.InitRoutes()
+	if err != nil {
+		return fmt.Errorf("init routes: %w", err)
+	}
+
+	if err := a.httpSrv.Run(router); err != nil {
 		a.log.Errorf("error while start http server: %v", err)
 
 		return fmt.Errorf("could not start http server: %w", err)
