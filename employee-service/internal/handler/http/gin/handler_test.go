@@ -1,6 +1,6 @@
 //go:build !integration
 
-package http
+package gin
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	serviceMock "github.com/Verce11o/resume-view/employee-service/internal/service/mocks"
 	"github.com/gin-gonic/gin"
@@ -142,7 +141,9 @@ func TestHandler_GetEmployeeByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.GetEmployeeByID(ctx, tt.id)
+			ctx.AddParam("id", tt.id)
+
+			h.GetEmployeeByID(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -213,7 +214,9 @@ func TestHandler_GetEmployeeList(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.GetEmployeeList(ctx, api.GetEmployeeListParams{Cursor: tt.cursor})
+			ctx.Request.URL.Query().Set("cursor", cursor)
+
+			h.GetEmployeeList(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -300,7 +303,9 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.UpdateEmployeeByID(ctx, tt.id)
+			ctx.AddParam("id", tt.id)
+
+			h.UpdateEmployeeByID(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -364,7 +369,9 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.DeleteEmployeeByID(ctx, tt.id)
+			ctx.AddParam("id", tt.id)
+
+			h.DeleteEmployeeByID(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -498,7 +505,9 @@ func TestHandler_GetPositionByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.GetPositionByID(ctx, tt.id)
+			ctx.AddParam("id", tt.id)
+
+			h.GetPositionByID(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -569,7 +578,9 @@ func TestHandler_GetPositionList(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.GetPositionList(ctx, api.GetPositionListParams{Cursor: tt.cursor})
+			ctx.Request.URL.Query().Set("cursor", cursor)
+
+			h.GetPositionList(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -648,7 +659,9 @@ func TestHandler_UpdatePosition(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.UpdatePositionByID(ctx, tt.id)
+			ctx.AddParam("id", tt.id)
+
+			h.UpdatePositionByID(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
@@ -711,8 +724,9 @@ func TestHandler_DeletePositionByID(t *testing.T) {
 				employeeService: employeeService,
 				positionService: positionService,
 			})
+			ctx.AddParam("id", tt.id)
 
-			h.DeletePositionByID(ctx, tt.id)
+			h.DeletePositionByID(ctx)
 			assert.EqualValues(t, tt.statusCode, w.Code)
 
 			if tt.response != nil {
