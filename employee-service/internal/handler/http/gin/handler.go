@@ -1,9 +1,8 @@
-package http
+package gin
 
 import (
 	"net/http"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/service"
 	"github.com/gin-gonic/gin"
@@ -18,14 +17,14 @@ type Handler struct {
 	authService     service.Auth
 }
 
-func NewHandler(log *zap.SugaredLogger, positionService service.Position, employeeService service.Employee,
+func New(log *zap.SugaredLogger, positionService service.Position, employeeService service.Employee,
 	authService service.Auth) *Handler {
 	return &Handler{log: log, positionService: positionService, employeeService: employeeService,
 		authService: authService}
 }
 
 func (h *Handler) SignIn(c *gin.Context) {
-	var input api.SignInEmployee
+	var input domain.SignInEmployeeRequest
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -55,7 +54,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 }
 
 func (h *Handler) CreateEmployee(c *gin.Context) {
-	var input api.CreateEmployee
+	var input domain.CreateEmployeeRequest
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -82,7 +81,9 @@ func (h *Handler) CreateEmployee(c *gin.Context) {
 	c.JSON(http.StatusOK, employee)
 }
 
-func (h *Handler) GetEmployeeByID(c *gin.Context, id string) {
+func (h *Handler) GetEmployeeByID(c *gin.Context) {
+	id := c.GetString("id")
+
 	employeeID, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -101,11 +102,8 @@ func (h *Handler) GetEmployeeByID(c *gin.Context, id string) {
 	c.JSON(http.StatusOK, employee)
 }
 
-func (h *Handler) GetEmployeeList(c *gin.Context, params api.GetEmployeeListParams) {
-	var cursor string
-	if params.Cursor != nil {
-		cursor = *params.Cursor
-	}
+func (h *Handler) GetEmployeeList(c *gin.Context) {
+	cursor := c.DefaultQuery("cursor", "")
 
 	employee, err := h.employeeService.GetEmployeeList(c.Request.Context(), cursor)
 	if err != nil {
@@ -118,7 +116,9 @@ func (h *Handler) GetEmployeeList(c *gin.Context, params api.GetEmployeeListPara
 	c.JSON(http.StatusOK, employee)
 }
 
-func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
+func (h *Handler) UpdateEmployeeByID(c *gin.Context) {
+	id := c.GetString("id")
+
 	employeeID, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -126,7 +126,7 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 		return
 	}
 
-	var input api.UpdateEmployee
+	var input domain.UpdateEmployeeRequest
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -134,7 +134,7 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 		return
 	}
 
-	positionID, err := uuid.Parse(input.PositionId)
+	positionID, err := uuid.Parse(input.PositionID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 
@@ -158,7 +158,9 @@ func (h *Handler) UpdateEmployeeByID(c *gin.Context, id string) {
 	c.JSON(http.StatusOK, employee)
 }
 
-func (h *Handler) DeleteEmployeeByID(c *gin.Context, id string) {
+func (h *Handler) DeleteEmployeeByID(c *gin.Context) {
+	id := c.GetString("id")
+
 	employeeID, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -178,7 +180,7 @@ func (h *Handler) DeleteEmployeeByID(c *gin.Context, id string) {
 }
 
 func (h *Handler) CreatePosition(c *gin.Context) {
-	var input api.CreatePosition
+	var input domain.CreatePositionRequest
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		h.log.Errorf("error parsing position: %v", err)
@@ -202,7 +204,9 @@ func (h *Handler) CreatePosition(c *gin.Context) {
 	c.JSON(http.StatusOK, position)
 }
 
-func (h *Handler) GetPositionByID(c *gin.Context, id string) {
+func (h *Handler) GetPositionByID(c *gin.Context) {
+	id := c.GetString("id")
+
 	positionID, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -221,23 +225,22 @@ func (h *Handler) GetPositionByID(c *gin.Context, id string) {
 	c.JSON(http.StatusOK, position)
 }
 
-func (h *Handler) GetPositionList(c *gin.Context, params api.GetPositionListParams) {
-	var cursor string
-	if params.Cursor != nil {
-		cursor = *params.Cursor
-	}
+func (h *Handler) GetPositionList(c *gin.Context) {
+	cursor := c.DefaultQuery("cursor", "")
 
-	employee, err := h.positionService.GetPositionList(c.Request.Context(), cursor)
+	positionList, err := h.positionService.GetPositionList(c.Request.Context(), cursor)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 
 		return
 	}
 
-	c.JSON(http.StatusOK, employee)
+	c.JSON(http.StatusOK, positionList)
 }
 
-func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {
+func (h *Handler) UpdatePositionByID(c *gin.Context) {
+	id := c.GetString("id")
+
 	positionID, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -245,7 +248,7 @@ func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {
 		return
 	}
 
-	var input api.UpdatePosition
+	var input domain.UpdatePositionRequest
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		h.log.Errorf("error parsing position: %v", err)
@@ -270,7 +273,9 @@ func (h *Handler) UpdatePositionByID(c *gin.Context, id string) {
 	c.JSON(http.StatusOK, position)
 }
 
-func (h *Handler) DeletePositionByID(c *gin.Context, id string) {
+func (h *Handler) DeletePositionByID(c *gin.Context) {
+	id := c.GetString("id")
+
 	positionID, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})

@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Verce11o/resume-view/employee-service/api"
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
-	http2 "github.com/Verce11o/resume-view/employee-service/internal/handler/http"
+	"github.com/Verce11o/resume-view/employee-service/internal/handler"
+	chiHandler "github.com/Verce11o/resume-view/employee-service/internal/handler/http/chi"
+	"github.com/Verce11o/resume-view/employee-service/internal/handler/http/gorilla"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
 	"github.com/Verce11o/resume-view/employee-service/internal/service"
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/gin-gonic/gin"
-	middleware "github.com/oapi-codegen/gin-middleware"
+	"github.com/go-chi/chi"
+	gorillaMux "github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -51,41 +51,61 @@ func (s *HTTP) Run(handler http.Handler) error {
 	return nil
 }
 
-func (s *HTTP) InitRoutes() *gin.Engine {
-	router := gin.New()
-
-	apiGroup := router.Group("/api/v1")
-
-	spec, _ := api.GetSwagger()
-	handlers := http2.NewHandler(s.log, s.positionService, s.employeeService, s.authService)
-
-	validator := middleware.OapiRequestValidatorWithOptions(spec,
-		&middleware.Options{
-			ErrorHandler: func(c *gin.Context, message string, _ int) {
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"message": message,
-				})
-			},
-			Options: openapi3filter.Options{
-				AuthenticationFunc: s.AuthMiddleware,
-			},
-		},
-	)
-
-	apiGroup.Use(s.LogMiddleware)
-	apiGroup.Use(s.CorrelationIDMiddleware)
-	apiGroup.Use(s.TracerMiddleware)
-	apiGroup.Use(validator)
-
-	api.RegisterHandlers(apiGroup, handlers)
-
-	return router
-}
-
 func (s *HTTP) Shutdown(ctx context.Context) error {
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown http server: %w", err)
 	}
 
 	return nil
+}
+
+type CustomRouter interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	MethodFunc(method, path string, handler http.HandlerFunc)
+	Use(middleware ...func(http.Handler) http.Handler)
+}
+
+func (s *HTTP) InitRoutes() (CustomRouter, error) {
+	var (
+		router          CustomRouter
+		employeeHandler handler.EmployeeHandler
+		positionHandler handler.PositionHandler
+	)
+
+	switch s.cfg.HTTPServer.Router {
+	case "chi":
+		router = chi.NewRouter()
+		h := chiHandler.New(s.log, s.positionService, s.employeeService, s.authService)
+		employeeHandler, positionHandler = h, h
+
+	case "gorilla":
+		router = gorilla.NewWrappedRouter(gorillaMux.NewRouter())
+		h := gorilla.New(s.log, s.positionService, s.employeeService, s.authService)
+		employeeHandler, positionHandler = h, h
+
+	default:
+		return nil, fmt.Errorf("invalid router type: %s", s.cfg.HTTPServer.Router)
+	}
+
+	router.Use(s.LogMiddleware, s.CorrelationIDMiddleware, s.ContentJSONMiddleware)
+
+	router.MethodFunc(http.MethodPost, "/auth/signin", employeeHandler.SignIn)
+
+	{
+		router.MethodFunc(http.MethodGet, "/employee", employeeHandler.GetEmployeeList)
+		router.MethodFunc(http.MethodPost, "/employee", s.AuthMiddleware(employeeHandler.CreateEmployee))
+		router.MethodFunc(http.MethodGet, "/employee/{id}", employeeHandler.GetEmployeeByID)
+		router.MethodFunc(http.MethodPut, "/employee/{id}", s.AuthMiddleware(employeeHandler.UpdateEmployeeByID))
+		router.MethodFunc(http.MethodDelete, "/employee/{id}", s.AuthMiddleware(employeeHandler.DeleteEmployeeByID))
+	}
+
+	{
+		router.MethodFunc(http.MethodGet, "/position", positionHandler.GetPositionList)
+		router.MethodFunc(http.MethodPost, "/position", s.AuthMiddleware(positionHandler.CreatePosition))
+		router.MethodFunc(http.MethodGet, "/position/{id}", positionHandler.GetPositionByID)
+		router.MethodFunc(http.MethodPut, "/position/{id}", s.AuthMiddleware(positionHandler.UpdatePositionByID))
+		router.MethodFunc(http.MethodDelete, "/position/{id}", s.AuthMiddleware(positionHandler.DeletePositionByID))
+	}
+
+	return router, nil
 }

@@ -21,7 +21,8 @@ type Config struct {
 }
 
 type HTTPServer struct {
-	Port string `env:"HTTP_SERVER_PORT" env-default:":3009"`
+	Port   string `env:"HTTP_SERVER_PORT" env-default:":3009"`
+	Router string `env:"HTTP_SERVER_ROUTER" env-default:"gorilla"`
 }
 
 type GRPCServer struct {
