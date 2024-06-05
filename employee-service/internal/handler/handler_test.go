@@ -1,24 +1,28 @@
 //go:build !integration
 
-package gin
+package handler
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	chiHandler "github.com/Verce11o/resume-view/employee-service/internal/handler/http/chi"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	serviceMock "github.com/Verce11o/resume-view/employee-service/internal/service/mocks"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
+
+type m map[string]any
 
 func TestHandler_CreateEmployee(t *testing.T) {
 	t.Parallel()
@@ -54,7 +58,7 @@ func TestHandler_CreateEmployee(t *testing.T) {
 		},
 		{
 			name:       "Invalid Input",
-			input:      `{"name":"John","surname":"Doe"}`,
+			input:      `{{{{`,
 			response:   models.Employee{},
 			mockFunc:   func(_ *fields) {},
 			statusCode: http.StatusBadRequest,
@@ -62,10 +66,6 @@ func TestHandler_CreateEmployee(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, tt.input)
-
-		MockJSONRequest(ctx, tt.input, http.MethodPost)
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -75,12 +75,24 @@ func TestHandler_CreateEmployee(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.CreateEmployee(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			req, err := http.NewRequest(http.MethodPost, "/employees", bytes.NewBufferString(tt.input))
+			require.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Post("/employees", h.CreateEmployee)
+
+			asd := mux.NewRouter()
+
+			asd.HandleFunc("/employees", h.CreateEmployee)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.Employee
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -130,8 +142,6 @@ func TestHandler_GetEmployeeByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, "")
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -141,14 +151,20 @@ func TestHandler_GetEmployeeByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.AddParam("id", tt.id)
+			req, err := http.NewRequest(http.MethodGet, "/employees/"+tt.id, nil)
+			require.NoError(t, err)
 
-			h.GetEmployeeByID(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Get("/employees/{id}", h.GetEmployeeByID)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.Employee
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -203,8 +219,6 @@ func TestHandler_GetEmployeeList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, "")
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -214,14 +228,20 @@ func TestHandler_GetEmployeeList(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.Request.URL.Query().Set("cursor", cursor)
+			req, err := http.NewRequest(http.MethodGet, "/employees?cursor="+*tt.cursor, nil)
+			require.NoError(t, err)
 
-			h.GetEmployeeList(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Get("/employees", h.GetEmployeeList)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.EmployeeList
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -290,10 +310,6 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPut, tt.input)
-
-		MockJSONRequest(ctx, tt.input, http.MethodPut)
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -303,14 +319,20 @@ func TestHandler_UpdateEmployeeByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.AddParam("id", tt.id)
+			req, err := http.NewRequest(http.MethodPut, "/employees/"+tt.id, bytes.NewBufferString(tt.input))
+			require.NoError(t, err)
 
-			h.UpdateEmployeeByID(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Put("/employees/{id}", h.UpdateEmployeeByID)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.Employee
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -337,7 +359,7 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 		{
 			name: "Valid ID",
 			id:   uuid.NewString(),
-			response: gin.H{
+			response: map[string]string{
 				"message": "success",
 			},
 			mockFunc: func(f *fields) {
@@ -349,7 +371,7 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 		{
 			name: "Invalid ID",
 			id:   "invalid",
-			response: gin.H{
+			response: map[string]string{
 				"message": errors.New("invalid UUID length: 7").Error(),
 			},
 			mockFunc:   func(_ *fields) {},
@@ -358,8 +380,6 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, "")
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -369,14 +389,20 @@ func TestHandler_DeleteEmployeeByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.AddParam("id", tt.id)
+			req, err := http.NewRequest(http.MethodDelete, "/employees/"+tt.id, nil)
+			require.NoError(t, err)
 
-			h.DeleteEmployeeByID(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Delete("/employees/{id}", h.DeleteEmployeeByID)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
-				var responseBody gin.H
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				var responseBody map[string]string
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -418,7 +444,7 @@ func TestHandler_CreatePosition(t *testing.T) {
 		},
 		{
 			name:       "Invalid Input",
-			input:      `{"name": "Go Developer", "pay_amount": 30999}`,
+			input:      `{{{`,
 			response:   models.Position{},
 			mockFunc:   func(_ *fields) {},
 			statusCode: http.StatusBadRequest,
@@ -426,10 +452,6 @@ func TestHandler_CreatePosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, tt.input)
-
-		MockJSONRequest(ctx, tt.input, http.MethodPost)
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -439,12 +461,20 @@ func TestHandler_CreatePosition(t *testing.T) {
 				positionService: positionService,
 			})
 
-			h.CreatePosition(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			req, err := http.NewRequest(http.MethodPost, "/positions", bytes.NewBufferString(tt.input))
+			require.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Post("/positions", h.CreatePosition)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.Position
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -494,8 +524,6 @@ func TestHandler_GetPositionByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodGet, "")
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -505,14 +533,21 @@ func TestHandler_GetPositionByID(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.AddParam("id", tt.id)
+			req, err := http.NewRequest(http.MethodGet, "/positions/"+tt.id, nil)
+			require.NoError(t, err)
 
-			h.GetPositionByID(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Get("/positions/{id}", h.GetPositionByID)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.Position
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -535,7 +570,7 @@ func TestHandler_GetPositionList(t *testing.T) {
 			Salary: 30999,
 		},
 		{
-			Name:   "Python developer",
+			Name:   "Python Developer",
 			Salary: 20845,
 		},
 	}
@@ -567,8 +602,6 @@ func TestHandler_GetPositionList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodGet, "")
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -578,14 +611,20 @@ func TestHandler_GetPositionList(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.Request.URL.Query().Set("cursor", cursor)
+			req, err := http.NewRequest(http.MethodGet, "/positions?cursor="+*tt.cursor, nil)
+			require.NoError(t, err)
 
-			h.GetPositionList(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Get("/positions", h.GetPositionList)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.PositionList
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -638,7 +677,7 @@ func TestHandler_UpdatePosition(t *testing.T) {
 		{
 			name:       "Invalid input",
 			id:         uuid.NewString(),
-			input:      `{"positionName":"NewGoDeveloper", "pay_amount": 30999}`,
+			input:      `{{{`,
 			response:   models.Position{},
 			mockFunc:   func(_ *fields) {},
 			statusCode: http.StatusBadRequest,
@@ -646,10 +685,6 @@ func TestHandler_UpdatePosition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPut, tt.input)
-
-		MockJSONRequest(ctx, tt.input, http.MethodPut)
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -659,14 +694,21 @@ func TestHandler_UpdatePosition(t *testing.T) {
 				positionService: positionService,
 			})
 
-			ctx.AddParam("id", tt.id)
+			req, err := http.NewRequest(http.MethodPut, "/positions/"+tt.id, bytes.NewBufferString(tt.input))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
 
-			h.UpdatePositionByID(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Put("/positions/{id}", h.UpdatePositionByID)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
 				var responseBody models.Position
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -693,7 +735,7 @@ func TestHandler_DeletePositionByID(t *testing.T) {
 		{
 			name: "Valid ID",
 			id:   uuid.NewString(),
-			response: gin.H{
+			response: map[string]string{
 				"message": "success",
 			},
 			mockFunc: func(f *fields) {
@@ -705,8 +747,8 @@ func TestHandler_DeletePositionByID(t *testing.T) {
 		{
 			name: "Invalid ID",
 			id:   "invalid",
-			response: gin.H{
-				"message": errors.New("invalid UUID length: 7").Error(),
+			response: map[string]string{
+				"message": "invalid UUID length: 7",
 			},
 			mockFunc:   func(_ *fields) {},
 			statusCode: http.StatusBadRequest,
@@ -714,8 +756,6 @@ func TestHandler_DeletePositionByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ctx, w := createTestContext(http.MethodPost, "")
-
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl, employeeService, positionService, h := initMocks(t)
 			defer ctrl.Finish()
@@ -724,14 +764,21 @@ func TestHandler_DeletePositionByID(t *testing.T) {
 				employeeService: employeeService,
 				positionService: positionService,
 			})
-			ctx.AddParam("id", tt.id)
 
-			h.DeletePositionByID(ctx)
-			assert.EqualValues(t, tt.statusCode, w.Code)
+			req, err := http.NewRequest(http.MethodDelete, "/positions/"+tt.id, nil)
+			require.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			r := chi.NewRouter()
+			r.Delete("/positions/{id}", h.DeletePositionByID)
+
+			r.ServeHTTP(rr, req)
+
+			assert.EqualValues(t, tt.statusCode, rr.Code)
 
 			if tt.response != nil {
-				var responseBody gin.H
-				err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+				var responseBody map[string]string
+				err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tt.response, responseBody)
 			}
@@ -739,38 +786,16 @@ func TestHandler_DeletePositionByID(t *testing.T) {
 	}
 }
 
-func MockJSONRequest(c *gin.Context, body string, method string) {
-	c.Request.Method = method
-	c.Request.Header.Set("Content-Type", "application/json")
-
-	c.Request.Body = io.NopCloser(bytes.NewBuffer([]byte(body)))
-}
-
-func createTestContext(method, body string) (*gin.Context, *httptest.ResponseRecorder) {
-	w := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(w)
-	ctx.Request = &http.Request{
-		Method: method,
-		Header: make(http.Header),
-	}
-	ctx.Request.Header.Set("Content-Type", "application/json")
-	ctx.Request.Body = io.NopCloser(bytes.NewBuffer([]byte(body)))
-
-	return ctx, w
-}
-
 func initMocks(t *testing.T) (*gomock.Controller, *serviceMock.MockEmployeeService,
-	*serviceMock.MockPositionService, *Handler) {
+	*serviceMock.MockPositionService, Handler) {
 	ctrl := gomock.NewController(t)
 	positionService := serviceMock.NewMockPositionService(ctrl)
 	employeeService := serviceMock.NewMockEmployeeService(ctrl)
+	authService := serviceMock.NewMockAuthService(ctrl)
+
 	log := zap.NewNop().Sugar()
 
-	h := &Handler{
-		log:             log,
-		positionService: positionService,
-		employeeService: employeeService,
-	}
+	h := chiHandler.New(log, positionService, employeeService, authService)
 
 	return ctrl, employeeService, positionService, h
 }

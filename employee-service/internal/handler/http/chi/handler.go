@@ -269,7 +269,7 @@ func (h *Handler) GetPositionByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		chiRender.Status(r, http.StatusBadRequest)
 		chiRender.JSON(w, r, chiRender.M{
-			"message": err.Error(),
+			"message": "invalid ID",
 		})
 
 		return
