@@ -4,6 +4,11 @@ import (
 	"net/http"
 )
 
+type Handler interface {
+	EmployeeHandler
+	PositionHandler
+}
+
 type EmployeeHandler interface {
 	SignIn(w http.ResponseWriter, r *http.Request)
 	CreateEmployee(w http.ResponseWriter, r *http.Request)

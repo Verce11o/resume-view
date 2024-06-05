@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-//go:generate mockgen -source=service.go -destination=mocks/services.go -package=mocks -mock_names=Employee=MockEmployeeService,Position=MockPositionService
+//go:generate mockgen -source=service.go -destination=mocks/services.go -package=mocks -mock_names=Employee=MockEmployeeService,Position=MockPositionService,Auth=MockAuthService
 type Employee interface {
 	CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error)
 	GetEmployee(ctx context.Context, id uuid.UUID) (models.Employee, error)
