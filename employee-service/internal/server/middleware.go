@@ -48,6 +48,7 @@ func (s *HTTP) CorrelationIDMiddleware(next http.Handler) http.Handler {
 func (s *HTTP) TracerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
+
 		next.ServeHTTP(w, r)
 
 		duration := time.Since(startTime)
