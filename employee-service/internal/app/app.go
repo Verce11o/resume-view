@@ -57,7 +57,7 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	positionCache := redis.NewPositionCache(redisClient)
 
 	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache,
-		transactor, authenticator)
+		transactor)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
 	authService := service.NewAuthService(log, employeeRepo, authenticator)
