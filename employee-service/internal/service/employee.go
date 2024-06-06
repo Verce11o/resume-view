@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
-	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -33,18 +32,17 @@ type Transactor interface {
 }
 
 type EmployeeService struct {
-	log           *zap.SugaredLogger
-	employeeRepo  EmployeeRepository
-	positionRepo  PositionRepository
-	cache         EmployeeCacheRepository
-	transactor    Transactor
-	authenticator *auth.Authenticator
+	log          *zap.SugaredLogger
+	employeeRepo EmployeeRepository
+	positionRepo PositionRepository
+	cache        EmployeeCacheRepository
+	transactor   Transactor
 }
 
 func NewEmployeeService(log *zap.SugaredLogger, employeeRepo EmployeeRepository, positionRepo PositionRepository,
-	cache EmployeeCacheRepository, transactor Transactor, authenticator *auth.Authenticator) *EmployeeService {
+	cache EmployeeCacheRepository, transactor Transactor) *EmployeeService {
 	return &EmployeeService{log: log, employeeRepo: employeeRepo, positionRepo: positionRepo, cache: cache,
-		transactor: transactor, authenticator: authenticator}
+		transactor: transactor}
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
