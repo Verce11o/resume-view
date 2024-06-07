@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: employee-deployment
+  labels:
+    app: employee-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: employee
+  template:
+    metadata:
+      name: employee-pod
+      labels:
+        app: employee
+    spec:
+      containers:
+        - name: employee-deployment
+          image: employee-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3009
+              protocol: TCP
+      restartPolicy: Always
