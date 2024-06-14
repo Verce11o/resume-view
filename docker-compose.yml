@@ -144,8 +144,6 @@ services:
     networks:
       - backend-network
 
-
-
   jaeger:
     image: jaegertracing/all-in-one:latest
     environment:
@@ -154,6 +152,17 @@ services:
       - "16686:16686"
       - "4317:4317"
       - "4318:4318"
+    networks:
+      - backend-network
+
+  kafka:
+    image: spotify/kafka:latest
+    environment:
+      ADVERTISED_HOST: 127.0.0.1
+      ADVERTISED_PORT: 9092
+    ports:
+      - "2181:2181"
+      - "9092:9092"
     networks:
       - backend-network
 
