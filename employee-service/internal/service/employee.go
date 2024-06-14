@@ -6,6 +6,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/domain"
 	"github.com/Verce11o/resume-view/employee-service/internal/models"
+	"github.com/goccy/go-json"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -31,18 +32,23 @@ type Transactor interface {
 	WithTransaction(context.Context, func(ctx context.Context) error) error
 }
 
+type EventNotifier interface {
+	SendMessage(ctx context.Context, key, value []byte) error
+}
+
 type EmployeeService struct {
-	log          *zap.SugaredLogger
-	employeeRepo EmployeeRepository
-	positionRepo PositionRepository
-	cache        EmployeeCacheRepository
-	transactor   Transactor
+	log           *zap.SugaredLogger
+	employeeRepo  EmployeeRepository
+	positionRepo  PositionRepository
+	cache         EmployeeCacheRepository
+	transactor    Transactor
+	eventNotifier EventNotifier
 }
 
 func NewEmployeeService(log *zap.SugaredLogger, employeeRepo EmployeeRepository, positionRepo PositionRepository,
-	cache EmployeeCacheRepository, transactor Transactor) *EmployeeService {
+	cache EmployeeCacheRepository, transactor Transactor, notifier EventNotifier) *EmployeeService {
 	return &EmployeeService{log: log, employeeRepo: employeeRepo, positionRepo: positionRepo, cache: cache,
-		transactor: transactor}
+		transactor: transactor, eventNotifier: notifier}
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateEmployee) (models.Employee, error) {
@@ -67,6 +73,18 @@ func (s *EmployeeService) CreateEmployee(ctx context.Context, req domain.CreateE
 	})
 	if err != nil {
 		return models.Employee{}, fmt.Errorf("create employee with transaction: %w", err)
+	}
+
+	employeeBytes, err := json.Marshal(employee)
+
+	if err != nil {
+		return models.Employee{}, fmt.Errorf("failed to marshal employee: %w", err)
+	}
+
+	err = s.eventNotifier.SendMessage(ctx, []byte(employee.ID.String()), employeeBytes)
+
+	if err != nil {
+		s.log.Errorf("failed to send message to event notifier: %s", err)
 	}
 
 	return employee, nil

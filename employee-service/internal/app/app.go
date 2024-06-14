@@ -9,6 +9,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
+	"github.com/Verce11o/resume-view/employee-service/internal/repository/kafka"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/mongodb"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/postgres"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/redis"
@@ -17,6 +18,7 @@ import (
 	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
 	redisLib "github.com/Verce11o/resume-view/shared/db/redis"
+	kafkaLib "github.com/Verce11o/resume-view/shared/kafka"
 	"go.uber.org/zap"
 )
 
@@ -51,13 +53,26 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		return nil, fmt.Errorf("could not connect to redis: %w", err)
 	}
 
+	kafkaClient, err := kafkaLib.New(ctx, kafkaLib.Config{
+		Host:      cfg.Kafka.Host,
+		Port:      cfg.Kafka.Port,
+		Topic:     cfg.Kafka.Topic,
+		Partition: cfg.Kafka.Partition,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to kafka: %w", err)
+	}
+
 	authenticator := auth.NewAuthenticator(cfg.JWTSignKey, cfg.TokenTTL)
 
 	employeeCache := redis.NewEmployeeCache(redisClient)
 	positionCache := redis.NewPositionCache(redisClient)
 
-	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache,
-		transactor)
+	eventNotifier := kafka.NewNotifier(kafkaClient, cfg.Kafka.Topic)
+
+	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor,
+		eventNotifier)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
 	authService := service.NewAuthService(log, employeeRepo, authenticator)

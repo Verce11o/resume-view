@@ -13,8 +13,9 @@ type Config struct {
 	Postgres      Postgres
 	MongoDB       MongoDB
 	Redis         Redis
-	JWTSignKey    string        `env:"JWT_SIGN_KEY" env-required:"true"`
-	TokenTTL      time.Duration `env:"TOKEN_TTL" env-required:"true"`
+	Kafka         Kafka
+	JWTSignKey    string        `env:"JWT_SIGN_KEY" env-default:"jwt-sign-key"`
+	TokenTTL      time.Duration `env:"TOKEN_TTL" env-default:"24h"`
 	MainDatabase  string        `env:"MAIN_DATABASE" env-default:"postgres"`
 	MainTransport string        `env:"MAIN_TRANSPORT" env-default:"http"`
 	LogLevel      string        `env:"LOG_LEVEL" env-default:"DEBUG"`
@@ -52,6 +53,13 @@ type Redis struct {
 	Port     string `env:"REDIS_PORT" env-default:"6379"`
 	Password string `env:"REDIS_PASSWORD" env-default:""`
 	Database int    `env:"REDIS_DB" env-default:"0"`
+}
+
+type Kafka struct {
+	Host      string `env:"KAFKA_HOST" env-default:"localhost"`
+	Port      string `env:"KAFKA_PORT" env-default:"9092"`
+	Topic     string `env:"KAFKA_TOPIC" env-default:"employees-events"`
+	Partition int    `env:"KAFKA_PARTITION" env-default:"0"`
 }
 
 func Load() Config {
