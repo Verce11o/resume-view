@@ -32,6 +32,7 @@ type Transactor interface {
 	WithTransaction(context.Context, func(ctx context.Context) error) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.42.2 --name=EventNotifier
 type EventNotifier interface {
 	SendMessage(ctx context.Context, key, value []byte) error
 }
