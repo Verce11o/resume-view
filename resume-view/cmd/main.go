@@ -39,5 +39,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	application.Stop()
+	if err := application.Stop(); err != nil {
+		log.Errorf("Failed to stop application: %v", err)
+	}
 }
