@@ -16,7 +16,9 @@ type Config struct {
 }
 
 func New(ctx context.Context, cfg Config) (*kafka.Conn, error) {
-	conn, err := kafka.DialLeader(ctx, "tcp", net.JoinHostPort(cfg.Host, cfg.Port), cfg.Topic, cfg.Partition)
+	addr := net.JoinHostPort(cfg.Host, cfg.Port)
+
+	conn, err := kafka.DialLeader(ctx, "tcp", addr, cfg.Topic, cfg.Partition)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to kafka: %w", err)
 	}

@@ -6,10 +6,12 @@ import (
 	"net"
 
 	"github.com/Verce11o/resume-view/resume-view/internal/config"
-	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/grpc"
+	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/handler/grpc"
+	"github.com/Verce11o/resume-view/resume-view/internal/handler/kafka"
 	"github.com/Verce11o/resume-view/resume-view/internal/repositories"
 	"github.com/Verce11o/resume-view/resume-view/internal/services"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
+	kafkaLib "github.com/Verce11o/resume-view/shared/kafka"
 	"github.com/Verce11o/resume-view/shared/tracer"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/propagation"
@@ -21,6 +23,7 @@ type App struct {
 	cfg        *config.Config
 	log        *zap.SugaredLogger
 	grpcServer *grpc.Server
+	consumer   *kafka.Consumer
 }
 
 func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App, error) {
@@ -41,6 +44,17 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 		return nil, fmt.Errorf("failed to init db: %w", err)
 	}
 
+	kafkaClient, err := kafkaLib.New(ctx, kafkaLib.Config{
+		Host:      cfg.Kafka.Host,
+		Port:      cfg.Kafka.Port,
+		Topic:     cfg.Kafka.Topic,
+		Partition: cfg.Kafka.Partition,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to kafka: %w", err)
+	}
+
 	repo := repositories.NewViewRepository(db, trace)
 	service := services.NewViewService(log, trace, repo)
 
@@ -52,29 +66,54 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 			),
 		))
 
+	consumer := kafka.NewConsumer(log, kafkaClient, cfg.Kafka.Topic, cfg.Kafka.Partition)
+
 	viewgrpc.Register(log, service, server, trace.Tracer)
 
 	return &App{
 		cfg:        cfg,
 		log:        log,
 		grpcServer: server,
+		consumer:   consumer,
 	}, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(ctx context.Context) error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", a.cfg.Server.Port))
 
 	if err != nil {
 		return fmt.Errorf("failed to listen tcp: %w", err)
 	}
 
-	if err := a.grpcServer.Serve(l); err != nil {
-		return fmt.Errorf("failed to serve grpc: %w", err)
-	}
+	errCh := make(chan error)
 
-	return nil
+	go func() {
+		if err = a.consumer.Consume(ctx); err != nil {
+			errCh <- fmt.Errorf("failed to consume: %w", err)
+
+			return
+		}
+	}()
+
+	go func() {
+		if err = a.grpcServer.Serve(l); err != nil {
+			errCh <- fmt.Errorf("failed to serve: %w", err)
+
+			return
+		}
+	}()
+
+	return <-errCh
 }
 
-func (a *App) Stop() {
+func (a *App) Stop() error {
+	if err := a.consumer.Close(); err != nil {
+		a.log.Errorf("failed to close consumer: %v", err)
+
+		return fmt.Errorf("failed to close consumer: %w", err)
+	}
+
 	a.grpcServer.GracefulStop()
+
+	return nil
 }
