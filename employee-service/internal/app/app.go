@@ -54,10 +54,8 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	}
 
 	kafkaClient, err := kafkaLib.New(ctx, kafkaLib.Config{
-		Host:      cfg.Kafka.Host,
-		Port:      cfg.Kafka.Port,
-		Topic:     cfg.Kafka.Topic,
-		Partition: cfg.Kafka.Partition,
+		Host: cfg.Kafka.Host,
+		Port: cfg.Kafka.Port,
 	})
 
 	if err != nil {

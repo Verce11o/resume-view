@@ -7,12 +7,13 @@ import (
 
 	"github.com/Verce11o/resume-view/resume-view/internal/config"
 	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/handler/grpc"
-	"github.com/Verce11o/resume-view/resume-view/internal/handler/kafka"
+	kafkaHandler "github.com/Verce11o/resume-view/resume-view/internal/handler/kafka"
 	"github.com/Verce11o/resume-view/resume-view/internal/repositories"
 	"github.com/Verce11o/resume-view/resume-view/internal/services"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
 	kafkaLib "github.com/Verce11o/resume-view/shared/kafka"
 	"github.com/Verce11o/resume-view/shared/tracer"
+	kafka "github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
@@ -23,7 +24,7 @@ type App struct {
 	cfg        *config.Config
 	log        *zap.SugaredLogger
 	grpcServer *grpc.Server
-	consumer   *kafka.Consumer
+	consumer   *kafkaHandler.Consumer
 }
 
 func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App, error) {
@@ -45,10 +46,8 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 	}
 
 	kafkaClient, err := kafkaLib.New(ctx, kafkaLib.Config{
-		Host:      cfg.Kafka.Host,
-		Port:      cfg.Kafka.Port,
-		Topic:     cfg.Kafka.Topic,
-		Partition: cfg.Kafka.Partition,
+		Host: cfg.Kafka.Host,
+		Port: cfg.Kafka.Port,
 	})
 
 	if err != nil {
@@ -66,7 +65,7 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 			),
 		))
 
-	consumer := kafka.NewConsumer(log, kafkaClient, cfg.Kafka.Topic, cfg.Kafka.Partition)
+	consumer := kafkaHandler.NewConsumer(log, kafkaClient, cfg.Kafka.Topic, cfg.Kafka.GroupID)
 
 	viewgrpc.Register(log, service, server, trace.Tracer)
 
@@ -88,7 +87,11 @@ func (a *App) Run(ctx context.Context) error {
 	errCh := make(chan error)
 
 	go func() {
-		if err = a.consumer.Consume(ctx); err != nil {
+		if err = a.consumer.Consume(ctx, func(_ context.Context, message *kafka.Message) error {
+			a.log.Debugf("message on offset %d: %s", message.Offset, message.Value)
+
+			return nil
+		}); err != nil {
 			errCh <- fmt.Errorf("failed to consume: %w", err)
 
 			return

@@ -17,9 +17,11 @@ services:
     depends_on:
       - postgres
       - jaeger
+      - kafka
 
     environment:
-      WAIT_HOSTS: postgres:5432, jaeger:4317
+      WAIT_HOSTS: postgres:5432, jaeger:4317, kafka:9092
+      WAIT_BEFORE: 5
 
     networks:
       - backend-network
@@ -66,13 +68,18 @@ services:
       - "MONGO_DB=employees"
       - "MONGO_REPLICA_SET=rs0"
 
+      - "KAFKA_HOST=kafka"
+      - "KAFKA_PORT=9092"
+      - "KAFKA_TOPIC=employees-events"
+
       - "REDIS_HOST=redis"
       - "REDIS_PORT=6379"
 
       - "MAIN_DATABASE=postgres"
       - "LOG_LEVEL=INFO"
       - "SERVER_PORT=:3009"
-      - "WAIT_HOSTS=postgres:5432,mongo:27017"
+      - "WAIT_HOSTS=postgres:5432,mongo:27017,kafka:9092"
+      - "WAIT_BEFORE=5"
 
     ports:
       - "3009:3009"
@@ -156,13 +163,40 @@ services:
       - backend-network
 
   kafka:
-    image: spotify/kafka:latest
+    image: wurstmeister/kafka:latest
     environment:
-      ADVERTISED_HOST: 127.0.0.1
-      ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "employees-events:3:1"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    networks:
+      - backend-network
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
     ports:
       - "2181:2181"
-      - "9092:9092"
+    networks:
+      - backend-network
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:9092'
     networks:
       - backend-network
 

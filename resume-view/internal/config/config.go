@@ -28,10 +28,10 @@ type DB struct {
 }
 
 type Kafka struct {
-	Host      string `env:"KAFKA_HOST" env-default:"localhost"`
-	Port      string `env:"KAFKA_PORT" env-default:"9092"`
-	Topic     string `env:"KAFKA_TOPIC" env-default:"employees-events"`
-	Partition int    `env:"KAFKA_PARTITION" env-default:"0"`
+	Host    string `env:"KAFKA_HOST" env-default:"localhost"`
+	Port    string `env:"KAFKA_PORT" env-default:"9092"`
+	Topic   string `env:"KAFKA_TOPIC" env-default:"employees-events"`
+	GroupID string `env:"KAFKA_GROUP_ID" env-default:"Group1"`
 }
 
 type Jaeger struct {

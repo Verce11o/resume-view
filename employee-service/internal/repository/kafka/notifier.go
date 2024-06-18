@@ -25,7 +25,7 @@ func NewNotifier(conn *kafka.Conn, topic string) *Notifier {
 	writer := &kafka.Writer{
 		Addr:      kafka.TCP(net.JoinHostPort(br.Host, strconv.Itoa(br.Port))),
 		Topic:     topic,
-		Balancer:  &kafka.LeastBytes{},
+		Balancer:  &kafka.Hash{}, // key based partitioning
 		BatchSize: bufferMessageAmount,
 	}
 
