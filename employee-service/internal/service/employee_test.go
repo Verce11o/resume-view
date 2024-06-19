@@ -19,9 +19,10 @@ func TestEmployeeService_CreateEmployee(t *testing.T) {
 	t.Parallel()
 
 	type fields struct {
-		employeeRepo *mocks.EmployeeRepository
-		positionRepo *mocks.PositionRepository
-		transactor   *mocks.Transactor
+		employeeRepo  *mocks.EmployeeRepository
+		positionRepo  *mocks.PositionRepository
+		transactor    *mocks.Transactor
+		eventNotifier *mocks.EventNotifier
 	}
 
 	employeeID := uuid.New()
@@ -71,6 +72,9 @@ func TestEmployeeService_CreateEmployee(t *testing.T) {
 						LastName:   "Doe",
 						PositionID: positionID,
 					}, nil)
+
+				f.eventNotifier.On("SendMessage", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil)
 			},
 		},
 		{
@@ -126,12 +130,7 @@ func TestEmployeeService_CreateEmployee(t *testing.T) {
 					}, nil)
 
 				f.employeeRepo.On("CreateEmployee", mock.Anything, mock.AnythingOfType("domain.CreateEmployee")).
-					Return(models.Employee{
-						ID:         employeeID,
-						FirstName:  "John",
-						LastName:   "Doe",
-						PositionID: positionID,
-					}, assert.AnError)
+					Return(models.Employee{}, assert.AnError)
 			},
 			wantErr: true,
 		},
@@ -143,19 +142,22 @@ func TestEmployeeService_CreateEmployee(t *testing.T) {
 			positionRepo := mocks.NewPositionRepository(t)
 			transactor := mocks.NewTransactor(t)
 			cache := mocks.NewEmployeeCacheRepository(t)
+			eventNotifier := mocks.NewEventNotifier(t)
 
 			tt.mockFunc(&fields{
-				employeeRepo: employeeRepo,
-				positionRepo: positionRepo,
-				transactor:   transactor,
+				employeeRepo:  employeeRepo,
+				positionRepo:  positionRepo,
+				transactor:    transactor,
+				eventNotifier: eventNotifier,
 			})
 
 			srv := &EmployeeService{
-				log:          zap.NewNop().Sugar(),
-				employeeRepo: employeeRepo,
-				positionRepo: positionRepo,
-				cache:        cache,
-				transactor:   transactor,
+				log:           zap.NewNop().Sugar(),
+				employeeRepo:  employeeRepo,
+				positionRepo:  positionRepo,
+				cache:         cache,
+				transactor:    transactor,
+				eventNotifier: eventNotifier,
 			}
 
 			employee, err := srv.CreateEmployee(context.TODO(), tt.input)

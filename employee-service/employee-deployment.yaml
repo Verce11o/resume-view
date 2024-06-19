@@ -25,5 +25,4 @@ spec:
           envFrom:
             - secretRef:
                 name: employee-secrets
-
       restartPolicy: Always

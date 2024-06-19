@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	LogLevel string `env:"LOG_LEVEL" env-default:"INFO"`
+	LogLevel string `env:"LOG_LEVEL" env-default:"DEBUG"`
 	Server   Server
 	DB       DB
+	Kafka    Kafka
 	Jaeger   Jaeger
 }
 
@@ -24,6 +25,13 @@ type DB struct {
 	Port     string `env:"POSTGRES_PORT" env-default:"5432"`
 	Name     string `env:"POSTGRES_DB" env-default:"views"`
 	SSLMode  string `env:"POSTGRES_SSL_MODE" env-default:"disable"`
+}
+
+type Kafka struct {
+	Host    string `env:"KAFKA_HOST" env-default:"localhost"`
+	Port    string `env:"KAFKA_PORT" env-default:"9092"`
+	Topic   string `env:"KAFKA_TOPIC" env-default:"employees-events"`
+	GroupID string `env:"KAFKA_GROUP_ID" env-default:"Group1"`
 }
 
 type Jaeger struct {
