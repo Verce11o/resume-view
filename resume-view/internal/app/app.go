@@ -80,14 +80,14 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 	}, nil
 }
 
-func (a *App) Run(ctx context.Context) error {
+func (a *App) Run(ctx context.Context, errCh chan error) {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", a.cfg.Server.Port))
 
 	if err != nil {
-		return fmt.Errorf("failed to listen tcp: %w", err)
-	}
+		errCh <- fmt.Errorf("failed to listen tcp: %w", err)
 
-	errCh := make(chan error)
+		return
+	}
 
 	go func() {
 		if err = a.consumer.Consume(ctx, func(_ context.Context, message *kafka.Message) error {
@@ -108,8 +108,6 @@ func (a *App) Run(ctx context.Context) error {
 			return
 		}
 	}()
-
-	return <-errCh
 }
 
 func (a *App) Wait(errCh chan error) {

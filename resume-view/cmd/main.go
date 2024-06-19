@@ -24,16 +24,9 @@ func main() {
 		return
 	}
 
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 
-	go func() {
-		if err := application.Run(ctx); err != nil {
-			log.Errorf("failed to start application: %v", err)
-			errCh <- err
-		}
-	}()
-
-	log.Infof("server starting on port %s...", cfg.Server.Port)
+	application.Run(ctx, errCh)
 
 	application.Wait(errCh)
 

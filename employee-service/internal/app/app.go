@@ -86,35 +86,40 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	}, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(errCh chan error) {
 	a.log.Infof("http server starting on port %s...", a.cfg.HTTPServer.Port)
 	a.log.Infof("grpc server starting on port %s...", a.cfg.GRPCServer.Port)
 
 	router, err := a.httpSrv.InitRoutes()
+
 	if err != nil {
-		return fmt.Errorf("init routes: %w", err)
+		errCh <- fmt.Errorf("init routes: %w", err)
+
+		return
 	}
 
 	if err := a.httpSrv.Run(router); err != nil {
 		a.log.Errorf("error while start http server: %v", err)
 
-		return fmt.Errorf("could not start http server: %w", err)
+		errCh <- fmt.Errorf("could not start http server: %w", err)
+
+		return
 	}
 
 	if err := a.grpcSrv.Run(); err != nil {
 		a.log.Errorf("Error while start grpc server: %v", err)
 
-		return fmt.Errorf("could not start grpc server: %w", err)
-	}
+		errCh <- fmt.Errorf("could not start grpc server: %w", err)
 
-	return nil
+		return
+	}
 }
 
-func (a *App) Wait(done chan error) {
+func (a *App) Wait(errCh chan error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	select {
-	case err := <-done:
+	case err := <-errCh:
 		a.log.Errorf("application terminated with error: %v", err)
 	case <-quit:
 	}
