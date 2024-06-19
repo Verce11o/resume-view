@@ -110,10 +110,14 @@ func (a *App) Run() error {
 	return nil
 }
 
-func (a *App) Wait() {
+func (a *App) Wait(done chan error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	select {
+	case err := <-done:
+		a.log.Errorf("application terminated with error: %v", err)
+	case <-quit:
+	}
 }
 
 func (a *App) Stop(ctx context.Context) error {

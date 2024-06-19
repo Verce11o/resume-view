@@ -22,13 +22,16 @@ func main() {
 		return
 	}
 
+	errCh := make(chan error)
+
 	go func() {
 		if err := application.Run(); err != nil {
 			log.Errorf("Failed to start application: %v", err)
+			errCh <- err
 		}
 	}()
 
-	application.Wait()
+	application.Wait(errCh)
 
 	if err := application.Stop(ctx); err != nil {
 		log.Errorf("Failed to stop application: %v", err)

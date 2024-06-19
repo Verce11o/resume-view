@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Verce11o/resume-view/resume-view/internal/config"
 	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/handler/grpc"
@@ -107,6 +110,16 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 
 	return <-errCh
+}
+
+func (a *App) Wait(errCh chan error) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	select {
+	case err := <-errCh:
+		a.log.Errorf("application terminated with error: %v", err)
+	case <-quit:
+	}
 }
 
 func (a *App) Stop() error {
