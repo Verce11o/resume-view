@@ -9,6 +9,7 @@ import (
 
 	"github.com/Verce11o/resume-view/employee-service/internal/config"
 	"github.com/Verce11o/resume-view/employee-service/internal/lib/auth"
+	"github.com/Verce11o/resume-view/employee-service/internal/repository/kafka"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/mongodb"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/postgres"
 	"github.com/Verce11o/resume-view/employee-service/internal/repository/redis"
@@ -17,6 +18,7 @@ import (
 	mongoLib "github.com/Verce11o/resume-view/shared/db/mongodb"
 	postgresLib "github.com/Verce11o/resume-view/shared/db/postgres"
 	redisLib "github.com/Verce11o/resume-view/shared/db/redis"
+	kafkaLib "github.com/Verce11o/resume-view/shared/kafka"
 	"go.uber.org/zap"
 )
 
@@ -51,13 +53,24 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 		return nil, fmt.Errorf("could not connect to redis: %w", err)
 	}
 
+	kafkaClient, err := kafkaLib.New(ctx, kafkaLib.Config{
+		Host: cfg.Kafka.Host,
+		Port: cfg.Kafka.Port,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to kafka: %w", err)
+	}
+
 	authenticator := auth.NewAuthenticator(cfg.JWTSignKey, cfg.TokenTTL)
 
 	employeeCache := redis.NewEmployeeCache(redisClient)
 	positionCache := redis.NewPositionCache(redisClient)
 
-	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache,
-		transactor)
+	eventNotifier := kafka.NewNotifier(kafkaClient, cfg.Kafka.Topic)
+
+	employeeService := service.NewEmployeeService(log, employeeRepo, positionRepo, employeeCache, transactor,
+		eventNotifier)
 	positionService := service.NewPositionService(log, positionRepo, positionCache)
 
 	authService := service.NewAuthService(log, employeeRepo, authenticator)
@@ -73,34 +86,43 @@ func New(ctx context.Context, cfg config.Config, log *zap.SugaredLogger) (*App, 
 	}, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(errCh chan error) {
 	a.log.Infof("http server starting on port %s...", a.cfg.HTTPServer.Port)
 	a.log.Infof("grpc server starting on port %s...", a.cfg.GRPCServer.Port)
 
 	router, err := a.httpSrv.InitRoutes()
+
 	if err != nil {
-		return fmt.Errorf("init routes: %w", err)
+		errCh <- fmt.Errorf("init routes: %w", err)
+
+		return
 	}
 
 	if err := a.httpSrv.Run(router); err != nil {
 		a.log.Errorf("error while start http server: %v", err)
 
-		return fmt.Errorf("could not start http server: %w", err)
+		errCh <- fmt.Errorf("could not start http server: %w", err)
+
+		return
 	}
 
 	if err := a.grpcSrv.Run(); err != nil {
 		a.log.Errorf("Error while start grpc server: %v", err)
 
-		return fmt.Errorf("could not start grpc server: %w", err)
-	}
+		errCh <- fmt.Errorf("could not start grpc server: %w", err)
 
-	return nil
+		return
+	}
 }
 
-func (a *App) Wait() {
+func (a *App) Wait(errCh chan error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	select {
+	case err := <-errCh:
+		a.log.Errorf("application terminated with error: %v", err)
+	case <-quit:
+	}
 }
 
 func (a *App) Stop(ctx context.Context) error {
