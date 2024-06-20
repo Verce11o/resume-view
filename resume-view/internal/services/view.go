@@ -16,14 +16,19 @@ type ViewRepository interface {
 	ListResumeView(ctx context.Context, cursor, resumeID string) (models.ViewList, error)
 }
 
+type ViewMetrics interface {
+	Inc(resumeID string)
+}
+
 type ViewService struct {
 	log    *zap.SugaredLogger
 	tracer trace.Tracer
 	repo   ViewRepository
+	metric ViewMetrics
 }
 
-func NewViewService(log *zap.SugaredLogger, tracer trace.Tracer, repo ViewRepository) *ViewService {
-	return &ViewService{log: log, tracer: tracer, repo: repo}
+func NewViewService(log *zap.SugaredLogger, tracer trace.Tracer, repo ViewRepository, metric ViewMetrics) *ViewService {
+	return &ViewService{log: log, tracer: tracer, repo: repo, metric: metric}
 }
 
 func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string) (uuid.UUID, error) {
@@ -37,6 +42,8 @@ func (v *ViewService) CreateView(ctx context.Context, resumeID, companyID string
 
 		return uuid.Nil, fmt.Errorf("failed to create view: %w", err)
 	}
+
+	v.metric.Inc(resumeID)
 
 	return viewID, nil
 }

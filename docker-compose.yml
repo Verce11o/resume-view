@@ -162,6 +162,16 @@ services:
     networks:
       - backend-network
 
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "19090:9090"
+
+    networks:
+      - backend-network
+
   kafka:
     image: wurstmeister/kafka:latest
     environment:
