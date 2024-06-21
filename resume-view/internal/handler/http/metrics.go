@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 )
 
 type Server struct {
-	log        *zap.SugaredLogger
-	httpServer *http.Server
-	port       string
+	log           *zap.SugaredLogger
+	metricsServer *http.Server
+	port          string
 }
 
 func NewServer(log *zap.SugaredLogger, port string) *Server {
@@ -20,7 +21,7 @@ func NewServer(log *zap.SugaredLogger, port string) *Server {
 }
 
 func (s *Server) Run() error {
-	s.httpServer = &http.Server{
+	s.metricsServer = &http.Server{
 		Addr:         s.port,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -28,8 +29,8 @@ func (s *Server) Run() error {
 
 	http.Handle("/metrics", promhttp.Handler())
 
-	if err := s.httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		s.log.Fatalf("http server error: %v", err)
+	if err := s.metricsServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("http server: %w", err)
 	}
 
 	return nil

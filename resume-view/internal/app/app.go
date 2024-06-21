@@ -10,7 +10,7 @@ import (
 
 	"github.com/Verce11o/resume-view/resume-view/internal/config"
 	viewgrpc "github.com/Verce11o/resume-view/resume-view/internal/handler/grpc"
-	httpHandler "github.com/Verce11o/resume-view/resume-view/internal/handler/http"
+	metricsHandler "github.com/Verce11o/resume-view/resume-view/internal/handler/http"
 	kafkaHandler "github.com/Verce11o/resume-view/resume-view/internal/handler/kafka"
 	"github.com/Verce11o/resume-view/resume-view/internal/lib/metrics"
 	"github.com/Verce11o/resume-view/resume-view/internal/repositories"
@@ -26,11 +26,11 @@ import (
 )
 
 type App struct {
-	cfg        *config.Config
-	log        *zap.SugaredLogger
-	grpcServer *grpc.Server
-	httpServer *httpHandler.Server
-	consumer   *kafkaHandler.Consumer
+	cfg           *config.Config
+	log           *zap.SugaredLogger
+	grpcServer    *grpc.Server
+	metricsServer *metricsHandler.Server
+	consumer      *kafkaHandler.Consumer
 }
 
 func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App, error) {
@@ -79,16 +79,16 @@ func New(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) (*App,
 
 	consumer := kafkaHandler.NewConsumer(log, kafkaClient, cfg.Kafka.Topic, cfg.Kafka.GroupID)
 
-	httpServer := httpHandler.NewServer(log, cfg.HTTPServer.Port)
+	metricsServer := metricsHandler.NewServer(log, cfg.HTTPServer.Port)
 
 	viewgrpc.Register(log, service, server, trace.Tracer)
 
 	return &App{
-		cfg:        cfg,
-		log:        log,
-		grpcServer: server,
-		consumer:   consumer,
-		httpServer: httpServer,
+		cfg:           cfg,
+		log:           log,
+		grpcServer:    server,
+		consumer:      consumer,
+		metricsServer: metricsServer,
 	}, nil
 }
 
@@ -122,7 +122,7 @@ func (a *App) Run(ctx context.Context, errCh chan error) {
 	}()
 
 	go func() {
-		if err = a.httpServer.Run(); err != nil {
+		if err = a.metricsServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to serve http: %w", err)
 
 			return
@@ -130,9 +130,13 @@ func (a *App) Run(ctx context.Context, errCh chan error) {
 	}()
 }
 
-func (a *App) Wait(errCh chan error) {
+func (a *App) Wait(cancel context.CancelFunc, errCh chan error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	defer signal.Stop(quit)
+	defer cancel()
+
 	select {
 	case err := <-errCh:
 		a.log.Errorf("application terminated with error: %v", err)
