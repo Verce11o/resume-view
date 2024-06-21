@@ -20,7 +20,7 @@ type GRPCServer struct {
 }
 
 type HTTPServer struct {
-	Port string `env:"HTTP_SERVER_PORT" env-default:":3008"`
+	Port string `env:"HTTP_SERVER_PORT" env-default:":3030"`
 }
 
 type DB struct {

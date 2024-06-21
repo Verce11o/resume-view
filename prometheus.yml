@@ -16,7 +16,7 @@ scrape_configs:
     # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['prometheus:9090']
 
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'resume-view'
@@ -29,4 +29,4 @@ scrape_configs:
     # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ['resume-view:3008']
+      - targets: ['resume-view:3030']

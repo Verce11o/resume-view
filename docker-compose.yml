@@ -13,6 +13,7 @@ services:
 
     ports:
       - "3007:3007"
+      - "3030:3030"
 
     depends_on:
       - postgres
@@ -20,7 +21,7 @@ services:
       - kafka
 
     environment:
-      WAIT_HOSTS: postgres:5432, jaeger:4317, kafka:9092
+      WAIT_HOSTS: postgres:5432, jaeger:4317, kafka:9092, prometheus:9090
       WAIT_BEFORE: 5
 
     networks:
@@ -168,7 +169,6 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "19090:9090"
-
     networks:
       - backend-network
 
