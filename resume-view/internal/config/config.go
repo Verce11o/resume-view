@@ -7,15 +7,20 @@ import (
 )
 
 type Config struct {
-	LogLevel string `env:"LOG_LEVEL" env-default:"DEBUG"`
-	Server   Server
-	DB       DB
-	Kafka    Kafka
-	Jaeger   Jaeger
+	LogLevel   string `env:"LOG_LEVEL" env-default:"DEBUG"`
+	GRPCServer GRPCServer
+	HTTPServer HTTPServer
+	DB         DB
+	Kafka      Kafka
+	Jaeger     Jaeger
 }
 
-type Server struct {
-	Port string `env:"SERVER_PORT" env-default:"3007"`
+type GRPCServer struct {
+	Port string `env:"GRPC_SERVER_PORT" env-default:"3007"`
+}
+
+type HTTPServer struct {
+	Port string `env:"HTTP_SERVER_PORT" env-default:":3030"`
 }
 
 type DB struct {

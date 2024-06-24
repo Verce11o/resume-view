@@ -13,6 +13,7 @@ services:
 
     ports:
       - "3007:3007"
+      - "3030:3030"
 
     depends_on:
       - postgres
@@ -20,7 +21,7 @@ services:
       - kafka
 
     environment:
-      WAIT_HOSTS: postgres:5432, jaeger:4317, kafka:9092
+      WAIT_HOSTS: postgres:5432, jaeger:4317, kafka:9092, prometheus:9090
       WAIT_BEFORE: 5
 
     networks:
@@ -162,6 +163,48 @@ services:
     networks:
       - backend-network
 
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "19090:9090"
+    networks:
+      - backend-network
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    pid: host
+    volumes:
+    - /proc:/host/proc:ro
+    - /sys:/host/sys:ro
+    - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - backend-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - backend-network
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+
   kafka:
     image: wurstmeister/kafka:latest
     environment:
@@ -212,7 +255,8 @@ volumes:
       type: 'none'
       o: 'bind'
       device: 'migrations'
-
+  prometheus_data:
+  grafana_data:
 networks:
   backend-network:
     driver: bridge

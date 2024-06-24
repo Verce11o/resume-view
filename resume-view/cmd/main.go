@@ -28,7 +28,7 @@ func main() {
 
 	application.Run(ctx, errCh)
 
-	application.Wait(errCh)
+	application.Wait(cancel, errCh)
 
 	if err := application.Stop(); err != nil {
 		log.Errorf("failed to stop application: %v", err)
