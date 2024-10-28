@@ -17,7 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const positionLimit = 5
+const positionLimit = 20
 
 type PositionRepository struct {
 	db *pgxpool.Pool

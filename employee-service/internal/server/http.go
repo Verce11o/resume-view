@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/rs/cors"
 	"net/http"
 	"time"
 
@@ -35,6 +36,18 @@ func NewHTTP(log *zap.SugaredLogger, employeeService service.Employee, positionS
 }
 
 func (s *HTTP) Run(handler http.Handler) error {
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5174"},                                                                // Specifically allow your frontend origin
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions}, // Added OPTIONS for preflight
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum age (in seconds) of the preflight request cache
+		ExposedHeaders:   []string{"Link"},
+		Debug:            true, // Enable debug mode to help diagnose issues (remove in production)
+	})
+
+	handler = c.Handler(handler)
+
 	s.httpServer = &http.Server{
 		Addr:         s.cfg.HTTPServer.Port,
 		Handler:      handler,

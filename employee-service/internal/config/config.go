@@ -35,7 +35,7 @@ type Postgres struct {
 	Password string `env:"POSTGRES_PASSWORD" env-default:"vercello"`
 	Host     string `env:"POSTGRES_HOST" env-default:"localhost"`
 	Port     string `env:"POSTGRES_PORT" env-default:"5432"`
-	Name     string `env:"POSTGRES_DB" env-default:"employees"`
+	Name     string `env:"POSTGRES_DB" env-default:"resume-views"`
 	SSLMode  string `env:"POSTGRES_SSL_MODE" env-default:"disable"`
 }
 

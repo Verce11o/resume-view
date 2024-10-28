@@ -17,7 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const employeeLimit = 5
+const employeeLimit = 20
 
 type EmployeeRepository struct {
 	db *pgxpool.Pool
